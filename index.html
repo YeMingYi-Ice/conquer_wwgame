@@ -1,0 +1,3212 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>征服世界</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{background:#f1f5f9;color:#0f172a;font-family:system-ui,-apple-system,"Segoe UI","Noto Sans SC",sans-serif;overflow:hidden;overscroll-behavior:none}
+  .app{display:flex;height:100vh;height:100dvh;gap:12px;padding:12px}
+  .map-wrap{flex:1 1 auto;min-width:0;min-height:0;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 4px 24px rgba(15,23,42,.08);overflow:hidden;position:relative}
+  canvas{display:block;border-radius:8px;cursor:grab;touch-action:none;user-select:none}
+  canvas:active{cursor:grabbing}
+  .map-hint{position:absolute;left:12px;bottom:10px;font-size:11px;color:#94a3b8;background:rgba(255,255,255,.85);padding:4px 10px;border-radius:20px;border:1px solid #e2e8f0;pointer-events:none;user-select:none}
+  .zoom-badge{position:absolute;right:12px;top:10px;font-size:11px;color:#475569;background:rgba(255,255,255,.9);padding:4px 10px;border-radius:20px;border:1px solid #e2e8f0;pointer-events:none;font-variant-numeric:tabular-nums}
+  .sidebar{flex:0 0 372px;display:flex;flex-direction:column;gap:10px;overflow-y:auto;padding-right:2px;min-height:0}
+  .sidebar::-webkit-scrollbar{width:7px}
+  .sidebar::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
+  .panel{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px 14px;box-shadow:0 1px 3px rgba(15,23,42,.05);flex-shrink:0}
+  .title{font-size:14px;font-weight:700;letter-spacing:1px;color:#0f172a;margin-bottom:10px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .title .dot{width:8px;height:8px;border-radius:50%;background:#2563eb;box-shadow:0 0 0 3px rgba(37,99,235,.15)}
+  .title .sub{font-size:11px;font-weight:400;color:#94a3b8;letter-spacing:0}
+  .badge-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px}
+  .diff-badge{display:flex;align-items:center;justify-content:space-between;background:#f8fafc;border:1px solid #eef2f7;border-radius:8px;padding:5px 8px;font-size:11px;color:#475569}
+  .diff-badge b{font-weight:700;font-size:11.5px}
+  .diff-badge.easy b{color:#16a34a}
+  .diff-badge.normal b{color:#2563eb}
+  .diff-badge.hard b{color:#dc2626}
+  .diff-badge.map b{color:#7c3aed}
+  .diff-badge.color b{color:#db2777}
+  .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .stat{background:#f8fafc;border:1px solid #eef2f7;border-radius:8px;padding:7px 10px}
+  .stat .k{color:#94a3b8;font-size:11px;margin-bottom:2px}
+  .stat .v{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2}
+  .money{color:#d97706}.troop{color:#2563eb}.tickv{color:#7c3aed}.land{color:#059669}
+  button{background:#f8fafc;border:1px solid #e2e8f0;color:#334155;border-radius:8px;padding:9px 10px;font-size:12.5px;cursor:pointer;transition:.13s;font-family:inherit;display:flex;align-items:center;justify-content:center;gap:5px;line-height:1.25;touch-action:manipulation}
+  button:hover:not(:disabled){background:#eff6ff;border-color:#93c5fd;color:#1d4ed8}
+  button:active:not(:disabled){transform:translateY(1px)}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  button.active{background:#2563eb;border-color:#2563eb;color:#fff;box-shadow:0 3px 12px rgba(37,99,235,.35)}
+  button.primary{background:#2563eb;border-color:#2563eb;color:#fff}
+  button.primary:hover:not(:disabled){background:#1d4ed8;border-color:#1d4ed8;color:#fff}
+  button.green{background:#16a34a;border-color:#16a34a;color:#fff}
+  button.green:hover:not(:disabled){background:#15803d;border-color:#15803d;color:#fff}
+  button.orange{background:#ea580c;border-color:#ea580c;color:#fff}
+  button.orange:hover:not(:disabled){background:#c2410c;border-color:#c2410c;color:#fff}
+  button.purple{background:#7c3aed;border-color:#7c3aed;color:#fff}
+  button.purple:hover:not(:disabled){background:#6d28d9;border-color:#6d28d9;color:#fff}
+  button.pink{background:#db2777;border-color:#db2777;color:#fff}
+  button.pink:hover:not(:disabled){background:#be185d;border-color:#be185d;color:#fff}
+  .row{display:flex;gap:7px;flex-wrap:wrap}
+  .btn-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  .big{grid-column:span 2}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:3px;background:linear-gradient(90deg,#2563eb 0%,#93c5fd 100%);outline:none;margin:6px 0;cursor:pointer;touch-action:manipulation}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:20px;height:20px;border-radius:50%;background:#fff;border:2px solid #2563eb;cursor:pointer;box-shadow:0 2px 6px rgba(37,99,235,.35)}
+  input[type=range]::-moz-range-thumb{width:20px;height:20px;border-radius:50%;background:#fff;border:2px solid #2563eb;cursor:pointer;box-shadow:0 2px 6px rgba(37,99,235,.35)}
+  .info-line{display:flex;justify-content:space-between;align-items:center;font-size:12.5px;padding:5px 0;border-bottom:1px dashed #eef2f7}
+  .info-line:last-child{border-bottom:none}
+  .info-line .lbl{color:#94a3b8}
+  .info-line .val{font-weight:600;font-variant-numeric:tabular-nums;color:#1e293b}
+  .tag{display:inline-block;font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;line-height:1.5}
+  .bar{height:6px;background:#eef2f7;border-radius:3px;overflow:hidden;margin-top:6px}
+  .bar>i{display:block;height:100%;background:linear-gradient(90deg,#60a5fa,#2563eb);border-radius:3px;transition:width .2s}
+  .log{height:140px;overflow-y:auto;font-size:11.5px;line-height:1.65;color:#475569}
+  .log::-webkit-scrollbar{width:6px}
+  .log::-webkit-scrollbar-thumb{background:#e2e8f0;border-radius:3px}
+  .log div{border-bottom:1px solid #f8fafc;padding:2px 0}
+  .log .warn{color:#dc2626}.log .good{color:#16a34a}.log .info{color:#2563eb}
+  .hint{font-size:11px;color:#94a3b8;line-height:1.55;margin-top:8px}
+  .ai-row{display:flex;justify-content:space-between;align-items:center;font-size:12px;padding:5px 0;border-bottom:1px solid #f8fafc}
+  .ai-row:last-child{border-bottom:none}
+  .ai-name{font-weight:700}
+  .ai-val{font-variant-numeric:tabular-nums;color:#475569}
+  #overlay{position:fixed;inset:0;background:rgba(248,250,252,.92);display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;z-index:99;backdrop-filter:blur(8px)}
+  #overlay h1{font-size:38px;letter-spacing:4px;color:#0f172a;text-align:center}
+  #overlay p{color:#64748b;font-size:15px;text-align:center;padding:0 20px}
+  #overlay button{padding:12px 34px;font-size:15px;background:#2563eb;border-color:#2563eb;color:#fff;border-radius:10px}
+  #setup-overlay{position:fixed;inset:0;z-index:120;background:radial-gradient(circle at 20% 20%,#dbeafe 0%,transparent 45%),radial-gradient(circle at 80% 80%,#ede9fe 0%,transparent 45%),linear-gradient(135deg,#f8fafc 0%,#eef2ff 100%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px;overflow-y:auto}
+  #setup-overlay h1{font-size:40px;letter-spacing:9px;background:linear-gradient(135deg,#1e40af,#7c3aed);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:#1e40af;text-align:center;font-weight:800}
+  #setup-overlay .sub{color:#64748b;font-size:13px;letter-spacing:3px;margin-top:-4px;text-align:center}
+  .section-title{color:#334155;font-size:13px;font-weight:700;letter-spacing:2px;margin-top:4px}
+  .cards{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;max-width:880px}
+  .card{background:#fff;border:2px solid #e2e8f0;border-radius:12px;padding:12px 14px;cursor:pointer;transition:.18s;display:flex;flex-direction:column;align-items:center;gap:5px;min-width:120px;flex:0 1 150px;box-shadow:0 4px 12px rgba(15,23,42,.06);font-family:inherit}
+  .card:hover{transform:translateY(-3px);border-color:#93c5fd;box-shadow:0 12px 26px rgba(37,99,235,.15)}
+  .card.active{border-color:#2563eb;background:linear-gradient(180deg,#eff6ff,#fff);box-shadow:0 0 0 4px rgba(37,99,235,.15),0 12px 26px rgba(37,99,235,.22);transform:translateY(-3px)}
+  .card .emoji{font-size:28px;line-height:1}
+  .card .name{font-size:14px;font-weight:800;color:#0f172a;letter-spacing:1px}
+  .card .desc{font-size:10.5px;color:#64748b;text-align:center;line-height:1.4}
+  .card.easy.active{border-color:#16a34a;box-shadow:0 0 0 4px rgba(22,163,74,.15),0 12px 26px rgba(22,163,74,.2)}
+  .card.hard.active{border-color:#dc2626;box-shadow:0 0 0 4px rgba(220,38,38,.15),0 12px 26px rgba(220,38,38,.2)}
+  .card[data-color="1"].active{border-color:#3b82f6;box-shadow:0 0 0 4px rgba(59,130,246,.2),0 12px 26px rgba(59,130,246,.25)}
+  .card[data-color="2"].active{border-color:#ef4444;box-shadow:0 0 0 4px rgba(239,68,68,.2),0 12px 26px rgba(239,68,68,.25)}
+  .card[data-color="3"].active{border-color:#22c55e;box-shadow:0 0 0 4px rgba(34,197,94,.2),0 12px 26px rgba(34,197,94,.25)}
+  .card[data-color="4"].active{border-color:#eab308;box-shadow:0 0 0 4px rgba(234,179,8,.2),0 12px 26px rgba(234,179,8,.25)}
+  .start-btn{padding:13px 56px;font-size:16px;font-weight:700;background:linear-gradient(135deg,#2563eb,#7c3aed);border:none;color:#fff;border-radius:12px;letter-spacing:4px;margin-top:12px;box-shadow:0 8px 24px rgba(37,99,235,.35);transition:.2s}
+  .start-btn:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(37,99,235,.5)}
+  .start-btn:active{transform:translateY(0)}
+  #ai-prompt-modal{position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:150;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+  #ai-prompt-modal .modal{background:#fff;border-radius:16px;max-width:820px;width:100%;max-height:86vh;display:flex;flex-direction:column;padding:20px 24px;box-shadow:0 24px 64px rgba(15,23,42,.35)}
+  #ai-prompt-modal h2{font-size:18px;margin-bottom:8px;color:#0f172a}
+  #ai-prompt-modal p{font-size:12.5px;color:#64748b;margin-bottom:12px;line-height:1.6}
+  #ai-prompt-text{flex:1;min-height:300px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;line-height:1.6;color:#1e293b;resize:none;outline:none;overflow-y:auto}
+
+  /* ===== 悬浮格子信息窗（屏幕固定，不随地图移动） ===== */
+  .cell-float{position:absolute;right:12px;top:44px;width:212px;background:rgba(255,255,255,.96);border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;box-shadow:0 6px 22px rgba(15,23,42,.14);font-size:12px;color:#1e293b;z-index:6;pointer-events:auto;user-select:none}
+  .cell-float.empty{display:none}
+  .cf-head{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-bottom:6px;padding-bottom:6px;border-bottom:1px dashed #eef2f7}
+  .cf-coord{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;color:#64748b;white-space:nowrap}
+  .cf-owner{font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:120px}
+  .cf-row{display:flex;align-items:center;gap:6px;font-size:11.5px;padding:2px 0;color:#475569}
+  .cf-row .cf-k{color:#94a3b8;min-width:32px;flex-shrink:0}
+  .cf-row .cf-v{color:#0f172a;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .cf-troops{display:flex;align-items:baseline;justify-content:space-between;margin-top:7px;font-variant-numeric:tabular-nums;gap:6px}
+  .cf-tv{font-size:18px;font-weight:700;color:#2563eb;line-height:1}
+  .cf-tc{font-size:11px;color:#94a3b8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+  .cf-bar{height:5px;background:#eef2f7;border-radius:3px;overflow:hidden;margin:5px 0 8px}
+  .cf-bar>i{display:block;height:100%;background:linear-gradient(90deg,#60a5fa,#2563eb);border-radius:3px;transition:width .2s}
+  .cf-actions{display:flex;gap:6px;margin-top:4px}
+  .cf-btn{flex:1;min-width:0;padding:7px 4px;font-size:11.5px;font-weight:600;border-radius:7px;border:1px solid #e2e8f0;background:#f8fafc;color:#334155;cursor:pointer;font-family:inherit;transition:.13s;line-height:1.2}
+  .cf-btn:hover:not(:disabled){background:#eff6ff;border-color:#93c5fd;color:#1d4ed8}
+  .cf-btn:disabled{opacity:.4;cursor:not-allowed}
+  .cf-btn.primary{background:#2563eb;border-color:#2563eb;color:#fff}
+  .cf-btn.primary:hover:not(:disabled){background:#1d4ed8;border-color:#1d4ed8;color:#fff}
+  .cf-btn.active{background:#2563eb;border-color:#2563eb;color:#fff;box-shadow:0 3px 10px rgba(37,99,235,.35)}
+  .cf-hint{font-size:11px;color:#94a3b8;line-height:1.5;text-align:center;padding:4px 0;flex:1}
+
+  /* ===== 回放控制条 ===== */
+  .replay-bar{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;align-items:center;gap:8px;background:rgba(15,23,42,.94);color:#fff;padding:8px 14px;border-radius:24px;box-shadow:0 6px 24px rgba(15,23,42,.35);z-index:8;font-size:12px;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);max-width:calc(100% - 24px);flex-wrap:nowrap}
+  .rp-btn{width:32px;height:32px;border-radius:50%;border:none;background:rgba(255,255,255,.15);color:#fff;font-size:14px;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;font-family:inherit;transition:.15s;flex-shrink:0}
+  .rp-btn:hover:not(:disabled){background:rgba(255,255,255,.25)}
+  .rp-btn:disabled{opacity:.4;cursor:not-allowed}
+  .rp-btn.active{background:#2563eb}
+  .rp-tick{font-variant-numeric:tabular-nums;min-width:78px;text-align:center;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;white-space:nowrap}
+  .rp-seek{width:180px;background:linear-gradient(90deg,#2563eb 0%,#93c5fd 100%);height:5px;border-radius:3px;-webkit-appearance:none;appearance:none;outline:none;cursor:pointer;margin:0}
+  .rp-seek::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid #2563eb;cursor:pointer}
+  .rp-seek::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid #2563eb;cursor:pointer}
+  .rp-views{display:flex;gap:3px;flex-shrink:0}
+  .rp-view{width:24px;height:24px;border-radius:50%;border:2px solid transparent;background:transparent;cursor:pointer;padding:0;font-size:13px;line-height:18px;text-align:center;transition:.15s;font-family:inherit}
+  .rp-view:hover{background:rgba(255,255,255,.15)}
+  .rp-view.active{border-color:#fff;box-shadow:0 0 0 2px rgba(255,255,255,.35)}
+
+  @media (max-width:860px){
+    .app{flex-direction:column;padding:8px;gap:8px}
+    .map-wrap{flex:1 1 52%;min-height:0;border-radius:10px}
+    .sidebar{flex:1 1 48%;max-height:none;min-height:0;padding-right:0}
+    .map-hint{font-size:10px;left:8px;bottom:8px;padding:3px 8px}
+    .zoom-badge{font-size:10px;right:8px;top:8px;padding:3px 8px}
+    .panel{padding:10px 12px}
+    .stat .v{font-size:16px}
+    #setup-overlay h1{font-size:28px;letter-spacing:5px}
+    .card{min-width:100px;padding:10px 12px;flex:1 1 100px}
+    .card .emoji{font-size:22px}.card .name{font-size:13px}.card .desc{font-size:10px}
+    .start-btn{padding:11px 40px;font-size:14px;letter-spacing:3px}
+    .badge-row{grid-template-columns:1fr 1fr}
+    .cell-float{right:8px;top:38px;width:168px;padding:8px 10px;font-size:11px}
+    .cf-tv{font-size:15px}
+    .cf-coord{font-size:10px}
+    .cf-owner{font-size:10.5px;padding:2px 6px;max-width:90px}
+    .cf-btn{font-size:10.5px;padding:6px 3px}
+    .replay-bar{padding:6px 10px;gap:5px;border-radius:20px}
+    .rp-seek{width:80px}
+    .rp-tick{min-width:60px;font-size:10px}
+    .rp-btn{width:26px;height:26px;font-size:12px}
+    .rp-view{width:20px;height:20px;font-size:11px;line-height:14px}
+  }
+</style>
+</head>
+<body>
+
+<div id="setup-overlay">
+  <h1>征服世界</h1>
+  <div class="sub">统一天下</div>
+
+  <div class="section-title">🎮 模式</div>
+  <div class="cards" id="mode-cards">
+    <button class="card active" data-mode="play"><span class="emoji">🎮</span><span class="name">玩家参战</span><span class="desc">你控制一方</span></button>
+    <button class="card" data-mode="spectate"><span class="emoji">🍿</span><span class="name">AI 观战</span><span class="desc">看 AI 打，你只负责看</span></button>
+  </div>
+
+  <div class="section-title">🗺️ 地图尺寸</div>
+  <div class="cards" id="size-cards">
+    <button class="card" data-size="small"><span class="emoji">🏝️</span><span class="name">25 × 25</span><span class="desc">快速对局</span></button>
+    <button class="card active" data-size="medium"><span class="emoji">🏔️</span><span class="name">50 × 50</span><span class="desc">平衡体验</span></button>
+    <button class="card" data-size="large"><span class="emoji">🌍</span><span class="name">100 × 100</span><span class="desc">史诗大战</span></button>
+  </div>
+
+  <div class="section-title" id="color-section-title">🎨 你的颜色</div>
+  <div class="cards" id="color-cards">
+    <button class="card active" data-color="1"><span class="emoji">🔵</span><span class="name">蓝方</span><span class="desc">起点：顶部中央</span></button>
+    <button class="card" data-color="2"><span class="emoji">🔴</span><span class="name">红方</span><span class="desc">起点：右侧中央</span></button>
+    <button class="card" data-color="3"><span class="emoji">🟢</span><span class="name">绿方</span><span class="desc">起点：底部中央</span></button>
+    <button class="card" data-color="4"><span class="emoji">🟡</span><span class="name">黄方</span><span class="desc">起点：左侧中央</span></button>
+  </div>
+
+  <div class="section-title">🤖 机器人难度</div>
+  <div class="cards" id="diff-cards">
+    <button class="card" data-diff="easy"><span class="emoji">🌱</span><span class="name">简单</span><span class="desc">保守缓慢</span></button>
+    <button class="card active" data-diff="normal"><span class="emoji">⚔️</span><span class="name">普通</span><span class="desc">均衡发展</span></button>
+    <button class="card" data-diff="hard"><span class="emoji">💀</span><span class="name">困难</span><span class="desc">多路突击</span></button>
+  </div>
+
+  <div class="section-title">🧠 AI 学习</div>
+  <div class="cards">
+    <button class="card active" data-learn="on"><span class="emoji">✅</span><span class="name">开启</span><span class="desc">AI 自适应并跨局进化</span></button>
+    <button class="card" data-learn="off"><span class="emoji">🚫</span><span class="name">关闭</span><span class="desc">固定参数</span></button>
+  </div>
+
+  <button id="btn-start-game" class="start-btn">开 始 征 服</button>
+</div>
+
+<div class="app">
+  <div class="map-wrap" id="mapWrap">
+    <canvas id="map"></canvas>
+    <div class="zoom-badge" id="zoomBadge">100%</div>
+    <div class="map-hint">双指缩放 · 拖拽平移 · 双击复位</div>
+    <div class="cell-float empty" id="cellFloat">
+      <div class="cf-head">
+        <span class="cf-coord" id="cfCoord">(0, 0)</span>
+        <span class="cf-owner" id="cfOwner">中立</span>
+      </div>
+      <div class="cf-row" id="cfBuildingRow" style="display:none">
+        <span class="cf-k">建筑</span><span class="cf-v" id="cfBuilding">—</span>
+      </div>
+      <div class="cf-troops">
+        <span class="cf-tv" id="cfTroopVal">0</span>
+        <span class="cf-tc" id="cfTroopCap">/ 150</span>
+      </div>
+      <div class="cf-bar"><i id="cfBar" style="width:0%"></i></div>
+      <div class="cf-actions" id="cfActions"></div>
+    </div>
+    <div class="replay-bar" id="replayBar" style="display:none">
+      <button class="rp-btn" id="rpPlay" title="播放/暂停">▶</button>
+      <button class="rp-btn" id="rpStep" title="单步前进">⏭</button>
+      <span class="rp-tick" id="rpTick">0 / 0</span>
+      <input type="range" class="rp-seek" id="rpSeek" min="0" max="0" value="0">
+      <div class="rp-views" id="rpViews"></div>
+      <button class="rp-btn" id="rpExit" title="退出回放">✖</button>
+    </div>
+  </div>
+
+  <aside class="sidebar">
+    <div class="panel">
+      <div class="title"><span class="dot"></span>征服世界</div>
+      <div class="badge-row">
+        <div class="diff-badge color" id="colorBadge"><span>🎨</span><b id="colorBadgeName">蓝方</b></div>
+        <div class="diff-badge map" id="mapBadge"><span>🗺️</span><b id="mapBadgeName">50×50</b></div>
+        <div class="diff-badge normal" id="diffBadge"><span>🤖</span><b id="diffBadgeName">普通</b></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="k">💰 金钱</div><div class="v money" id="s-money">0</div></div>
+        <div class="stat"><div class="k">🪖 总兵力</div><div class="v troop" id="s-troop">0</div></div>
+        <div class="stat"><div class="k">🚩 领地</div><div class="v land" id="s-land">0</div></div>
+        <div class="stat"><div class="k">⏱ Tick</div><div class="v tickv" id="s-tick">0</div></div>
+      </div>
+      <div class="row" style="margin-top:9px">
+        <button id="btn-pause" style="flex:1" class="primary">⏸ 暂停</button>
+        <button id="btn-fit" style="flex:1">🔍 复位视角</button>
+      </div>
+    </div>
+
+    <div id="ext-music-slot"></div>
+
+    <div class="panel">
+      <div class="title" style="font-size:13px">🧠 AI 学习<span class="sub" id="learnStatus">已开启</span></div>
+      <div id="aiPanel"><div class="hint">载入中…</div></div>
+      <div class="row" style="margin-top:8px">
+        <button id="btn-train" class="purple" style="flex:1">🚀 训练 20 局</button>
+        <button id="btn-reset-mem" style="flex:1">♻️ 重置记忆</button>
+      </div>
+      <div class="hint">训练期间你的位置由陪练 AI 接管，结束后自动恢复。</div>
+    </div>
+
+    <div class="panel">
+      <div class="title" style="font-size:13px">🤖 AI 插件</div>
+      <div class="diff-badge" style="margin-bottom:8px">
+        <span>当前</span><b id="aiPluginName">内置 AI v2</b>
+      </div>
+      <div class="row">
+        <button id="btn-load-ai" style="flex:1" class="orange">📂 加载 AI</button>
+        <button id="btn-reset-ai" style="flex:1">♻️ 恢复内置</button>
+      </div>
+      <button id="btn-show-prompt" class="big" style="margin-top:7px">📋 查看 AI 开发提示词</button>
+      <input type="file" id="file-ai" accept=".js,.txt,text/javascript" style="display:none">
+      <div class="hint">同目录 <code>ai.js</code> 会被自动加载</div>
+    </div>
+
+    <div class="panel">
+      <div class="title" style="font-size:13px">💾 存档</div>
+      <div class="row">
+        <button id="btn-export" class="green" style="flex:1">📤 导出</button>
+        <button id="btn-import" style="flex:1">📥 导入</button>
+      </div>
+      <input type="file" id="file-import" accept=".txt,.json" style="display:none">
+    </div>
+
+    <div class="panel">
+      <div class="title" style="font-size:13px">📺 回放</div>
+      <div class="row">
+        <button id="btn-rec" class="orange" style="flex:1">🔴 开始录制</button>
+        <button id="btn-replay-export" class="green" style="flex:1" disabled>💾 导出</button>
+      </div>
+      <button id="btn-replay-load" class="primary big" style="margin-top:7px">📺 载入回放文件</button>
+      <input type="file" id="file-replay" accept=".json,.txt" style="display:none">
+      <div class="hint" id="replayHint">点击「开始录制」记录本局。</div>
+    </div>
+
+    <div class="panel">
+      <div class="title" style="font-size:13px">🎯 格子详情<span class="sub" id="cellCoord"></span></div>
+      <div id="cellInfo"><div class="hint">点击地图上的格子查看详情</div></div>
+    </div>
+
+    <div class="panel">
+      <div class="title" style="font-size:13px">🏪 商店</div>
+      <div class="btn-grid" id="shop"></div>
+      <div class="hint">⚠️ <b>只有大本营和兵营</b>可以购买/增援兵力。</div>
+    </div>
+
+    <div class="panel">
+      <div class="title" style="font-size:13px">📜 战报</div>
+      <div class="log" id="log"></div>
+    </div>
+  </aside>
+</div>
+
+<div id="overlay">
+  <h1 id="ov-title">胜利</h1>
+  <p id="ov-sub"></p>
+  <button onclick="location.reload()">重新开始</button>
+</div>
+
+<div id="ai-prompt-modal">
+  <div class="modal">
+    <h2>AI 开发提示词</h2>
+    <p>复制以下提示词，粘贴给另一个 AI 对话，让它生成一个 AI 插件。生成的 JS 保存为 ai.js 放进游戏目录，会自动加载。</p>
+    <textarea id="ai-prompt-text" readonly></textarea>
+    <div class="row" style="margin-top:12px;justify-content:flex-end">
+      <button id="btn-copy-prompt" class="primary">📋 复制到剪贴板</button>
+      <button id="btn-close-prompt">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script src="./ai.js" onerror="console.info('[AI] 未找到 ./ai.js，使用内置 AI')"></script>
+
+<script>
+/* =========================================================
+   常量
+   ========================================================= */
+const TICK_MS     = 5000;
+const UNIT_SPEED  = 0.5;
+const MOVE_COST   = 50;
+const TROOP_PRICE = 30;
+const BASE_INCOME = 100;
+
+const T_PLAIN = 0, T_LOW = 1, T_MID = 2, T_HIGH = 3, T_BASE = 4;
+const T_INCOME = { 0:0, 1:6, 2:12, 3:30, 4:15 };
+const T_NAME = { 0:'普通地块', 1:'初级资源点', 2:'中级资源点', 3:'高级资源点', 4:'大本营' };
+
+const FACTION_NAME  = ['中立', '蓝方', '红方', '绿方', '黄方'];
+const COLOR_NAMES   = ['', '蓝方', '红方', '绿方', '黄方'];
+const COLOR_EMOJI   = ['', '🔵', '🔴', '🟢', '🟡'];
+const FACTION_COLOR = ['#94a3b8', '#3b82f6', '#ef4444', '#22c55e', '#eab308'];
+const FACTION_RGB   = [null, [59,130,246], [239,68,68], [34,197,94], [234,179,8]];
+const FACTION_DARK  = [null, [29,78,216],  [153,27,27], [21,128,61], [161,98,7]];
+
+const BUILD_DEFS = {
+  barracks:{ w:2,h:2, name:'兵营',   cost:500, up:500, icon:'🏰', desc:'2×2 · 容量 250×等级 · 每 tick 产 100×等级 兵' },
+  wall:    { w:1,h:1, name:'城墙',   cost:100, up:100, icon:'🧱', desc:'1×1 · 容量 300×等级 · 每级 +100 防护' },
+  mine:    { w:1,h:1, name:'地雷',   cost:150, up:150, icon:'💣', desc:'1×1 · 踩中造成 200×等级 伤害' },
+  outpost: { w:1,h:1, name:'前哨站', cost:800, up:800, icon:'🗼', desc:'1×1 · 容量 2000 · 每级 +1000 防护' },
+};
+
+const DIFF_CFG = {
+  easy:   { thinkEvery:4, moneyUse:0.35, aggression:0.7, maxAttacks:1, maxBarracks:3, keepBackRatio:0.55, buffer:80,  buildDefense:false, preferPlayer:false },
+  normal: { thinkEvery:2, moneyUse:0.65, aggression:1.0, maxAttacks:2, maxBarracks:5, keepBackRatio:0.40, buffer:200, buildDefense:true,  preferPlayer:false },
+  hard:   { thinkEvery:1, moneyUse:0.92, aggression:1.5, maxAttacks:3, maxBarracks:8, keepBackRatio:0.25, buffer:350, buildDefense:true,  preferPlayer:true  },
+};
+const DIFF_NAME = { easy:'简单', normal:'普通', hard:'困难' };
+
+const MAP_PRESETS = {
+  small:  { w:25,  h:25,  midSize:4, highSize:2, lowCount:8  },
+  medium: { w:50,  h:50,  midSize:6, highSize:3, lowCount:16 },
+  large:  { w:100, h:100, midSize:8, highSize:3, lowCount:34 },
+};
+const MAP_NAME = { small:'25×25', medium:'50×50', large:'100×100' };
+
+const SAVE_VERSION = 5;
+const SAVE_TAG = 'conquest-v5';
+
+const AI_MEMORY_KEY = 'conquest_ai_memory_v1';
+const LEARNABLE_KEYS = ['aggression','buffer','keepBackRatio','moneyUse','maxAttacks','maxBarracks'];
+const PARAM_BOUNDS = {
+  aggression:    [0.3, 2.5],
+  buffer:        [40, 700],
+  keepBackRatio: [0.1, 0.7],
+  moneyUse:      [0.2, 0.98],
+  maxAttacks:    [1, 4],
+  maxBarracks:   [2, 12],
+};
+
+/* =========================================================
+   状态
+   ========================================================= */
+let W = 50, H = 50, N = W * H;
+let owner, troops, terrain, bIdAt;
+let buildings = [];
+let bMap = new Map();
+let nextBId = 0;
+let money  = [0, 2000, 2000, 2000, 2000];
+let units  = [];
+let bfsPrev, bfsSeen, bfsQueue;
+let bfsStamp = 0;
+const DIRS = [[1,0],[-1,0],[0,1],[0,-1]];
+let resourceCells = [];
+
+let paused = false, gameOver = false, gameStarted = false;
+let aiDifficulty = 'normal';
+let mapPreset = 'medium';
+let playerFaction = 1;
+let spectatorMode = false;
+let tickCount = 0, tickAcc = 0, lastTs = 0;
+let aiTimers = [0,0,0,0,0];
+let selected = null, hoverCell = -1;
+let placing = null, moveMode = false;
+let dispatchAmount = null, sliderActive = false;
+let selectedUnit = null;
+let rerouteMode = false;
+let mapDirty = true;
+const markDirty = () => { mapDirty = true; };
+
+let aiLearningEnabled = true;
+let aiMemory = null;
+let memoryFallback = null;
+let isTraining = false;
+
+/* ★ Replay 状态 */
+let recorder = null;
+let lastRecording = null;
+let replayMode = false;
+let replayData = null;
+let replayPos = 0;
+let replayAcc = 0;
+let replayPlaying = false;
+let replayBackup = null;
+
+/* =========================================================
+   动态势力辅助
+   ========================================================= */
+function getFactionName(f) {
+  if (f === 0) return '中立';
+  if (f === playerFaction && !spectatorMode && !replayMode) return `你（${COLOR_NAMES[f]}）`;
+  return COLOR_NAMES[f];
+}
+const isPlayer = (f) => f === playerFaction && !spectatorMode && !replayMode;
+function aiFactionList() {
+  const arr = [];
+  if (spectatorMode || replayMode) {
+    for (let f = 1; f <= 4; f++) arr.push(f);
+  } else {
+    for (let f = 1; f <= 4; f++) if (f !== playerFaction) arr.push(f);
+  }
+  return arr;
+}
+
+/* =========================================================
+   工具
+   ========================================================= */
+const idxOf = (x, y) => y * W + x;
+const xOf = i => i % W;
+const yOf = i => (i - (i % W)) / W;
+const clamp = (v,a,b) => v < a ? a : v > b ? b : v;
+const manhattan = (a,b) => Math.abs(xOf(a)-xOf(b)) + Math.abs(yOf(a)-yOf(b));
+
+function log(msg, cls='') {
+  const el = document.getElementById('log');
+  if (!el) return;
+  const d = document.createElement('div');
+  d.className = cls; d.textContent = msg;
+  el.appendChild(d);
+  while (el.children.length > 130) el.removeChild(el.firstChild);
+  el.scrollTop = el.scrollHeight;
+}
+
+function maxDispatchOf(cell) { return Math.floor(troops[cell] / 100) * 100; }
+
+function canRecruitAt(i, f) {
+  if (owner[i] !== f) return false;
+  if (terrain[i] === T_BASE) return true;
+  const bid = bIdAt[i];
+  if (bid >= 0) {
+    const b = bMap.get(bid);
+    if (b && b.type === 'barracks') return true;
+  }
+  return false;
+}
+
+function capacity(i) {
+  const bid = bIdAt[i];
+  if (bid >= 0) {
+    const b = bMap.get(bid);
+    if (b) {
+      if (b.type === 'barracks') return 250 * b.level;
+      if (b.type === 'wall')     return 300 * b.level;
+      if (b.type === 'outpost')  return 2000;
+    }
+  }
+  return terrain[i] === T_BASE ? 1000 : 150;
+}
+
+/* =========================================================
+   建筑
+   ========================================================= */
+function canPlace(type, x, y, f) {
+  const d = BUILD_DEFS[type];
+  if (x < 0 || y < 0 || x + d.w > W || y + d.h > H) return false;
+  for (let dy = 0; dy < d.h; dy++)
+    for (let dx = 0; dx < d.w; dx++) {
+      const i = idxOf(x + dx, y + dy);
+      if (bIdAt[i] >= 0) return false;
+      if (owner[i] !== f) return false;
+      if (terrain[i] === T_BASE) return false;
+    }
+  return true;
+}
+function placeBuilding(type, x, y, f) {
+  const d = BUILD_DEFS[type];
+  if (money[f] < d.cost) return false;
+  if (!canPlace(type, x, y, f)) return false;
+  money[f] -= d.cost;
+  const id = nextBId++;
+  const cells = [];
+  for (let dy = 0; dy < d.h; dy++)
+    for (let dx = 0; dx < d.w; dx++) {
+      const i = idxOf(x + dx, y + dy);
+      bIdAt[i] = id; cells.push(i);
+    }
+  const b = { id, type, owner: f, level: 1, cells, x, y };
+  buildings.push(b); bMap.set(id, b);
+  markDirty();
+  return true;
+}
+function removeBuilding(id) {
+  const b = bMap.get(id);
+  if (!b) return;
+  for (const c of b.cells) bIdAt[c] = -1;
+  bMap.delete(id);
+  const k = buildings.indexOf(b);
+  if (k >= 0) buildings.splice(k, 1);
+  markDirty();
+}
+function upgradeBuilding(id, f) {
+  const b = bMap.get(id);
+  if (!b || b.owner !== f || b.level >= 5) return false;
+  const cost = BUILD_DEFS[b.type].up * b.level;
+  if (money[f] < cost) return false;
+  money[f] -= cost; b.level++;
+  markDirty();
+  return true;
+}
+
+/* =========================================================
+   寻路 & 派兵
+   ========================================================= */
+function findPath(sx, sy, tx, ty, faction) {
+  const s = idxOf(sx, sy), t = idxOf(tx, ty);
+  if (s === t) return null;
+  bfsStamp++;
+  const stamp = bfsStamp;
+  let qh = 0, qt = 0;
+  bfsQueue[qt++] = s;
+  bfsSeen[s] = stamp; bfsPrev[s] = -1;
+  let found = false;
+  while (qh < qt) {
+    const cur = bfsQueue[qh++];
+    if (cur === t) { found = true; break; }
+    const cx = xOf(cur), cy = yOf(cur);
+    for (let d = 0; d < 4; d++) {
+      const nx = cx + DIRS[d][0], ny = cy + DIRS[d][1];
+      if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
+      const ni = idxOf(nx, ny);
+      if (bfsSeen[ni] === stamp) continue;
+      const bid = bIdAt[ni];
+      if (bid >= 0 && ni !== t) {
+        const b = bMap.get(bid);
+        if (b && b.type === 'wall' && b.owner !== faction) continue;
+      }
+      bfsSeen[ni] = stamp; bfsPrev[ni] = cur; bfsQueue[qt++] = ni;
+    }
+  }
+  if (!found) return null;
+  const path = [];
+  let cur = t, guard = 0;
+  while (cur !== -1 && guard++ < N + 10) { path.push(cur); cur = bfsPrev[cur]; }
+  path.reverse();
+  return path.length >= 2 ? path : null;
+}
+
+function dispatch(f, fromIdx, toIdx, amount) {
+  if (fromIdx === toIdx) return false;
+  if (owner[fromIdx] !== f) return false;
+  amount = Math.min(amount | 0, troops[fromIdx]);
+  if (amount <= 0) return false;
+  const path = findPath(xOf(fromIdx), yOf(fromIdx), xOf(toIdx), yOf(toIdx), f);
+  if (!path) return false;
+  troops[fromIdx] -= amount;
+  units.push({
+    owner: f, troops: amount, path,
+    seg: 1, prog: 0, dead: false,
+    px: xOf(path[0]), py: yOf(path[0]),
+    targetTerrain: terrain[toIdx],
+    targetOwner: owner[toIdx],
+  });
+  markDirty();
+  return true;
+}
+
+function rerouteUnit(u, newTargetIdx) {
+  if (!u || !units.includes(u)) return false;
+  const startIdx = u.path[u.seg - 1];
+  if (startIdx === newTargetIdx) return false;
+  const newPath = findPath(xOf(startIdx), yOf(startIdx), xOf(newTargetIdx), yOf(newTargetIdx), u.owner);
+  if (!newPath || newPath.length < 2) return false;
+  u.path = u.path.slice(0, u.seg).concat(newPath.slice(1));
+  u.prog = 0;   // 从当前格重新出发，避免瞬移
+  u.targetTerrain = terrain[newTargetIdx];
+  u.targetOwner = owner[newTargetIdx];
+  markDirty();
+  return true;
+}
+
+function updateUnits(dt) {
+  for (let k = units.length - 1; k >= 0; k--) {
+    const u = units[k];
+    u.prog += dt / UNIT_SPEED;
+    while (u.prog >= 1) {
+      u.prog -= 1;
+      const ci = u.path[u.seg];
+      if (owner[ci] !== u.owner) {
+        u.troops -= MOVE_COST;
+        if (u.troops <= 0) { u.dead = true; break; }
+      }
+      const bid = bIdAt[ci];
+      if (owner[ci] !== u.owner && bid < 0 && terrain[ci] !== T_BASE && troops[ci] === 0) {
+        owner[ci] = u.owner;
+        markDirty();
+      }
+      if (bid >= 0) {
+        const b = bMap.get(bid);
+        if (b && b.type === 'mine' && b.owner !== u.owner && b.owner !== 0) {
+          u.troops -= 200 * b.level;
+          if (u.owner === playerFaction && !spectatorMode && !replayMode) log(`💥 你的部队踩到地雷，损失 ${200 * b.level} 兵`, 'warn');
+          removeBuilding(bid);
+          if (u.troops <= 0) { u.dead = true; break; }
+        }
+      }
+      if (u.seg === u.path.length - 1) {
+        onArrive(u, ci);
+        u.dead = true;
+        break;
+      }
+      u.seg++;
+    }
+    if (u.dead) {
+      if (u === selectedUnit) { selectedUnit = null; rerouteMode = false; }
+      units.splice(k, 1);
+      continue;
+    }
+    const a = u.path[u.seg - 1], b2 = u.path[u.seg];
+    u.px = xOf(a) + (xOf(b2) - xOf(a)) * u.prog;
+    u.py = yOf(a) + (yOf(b2) - yOf(a)) * u.prog;
+  }
+}
+
+function onArrive(u, cell) {
+  const f = u.owner;
+  if (owner[cell] === f) {
+    const cap = capacity(cell);
+    troops[cell] = Math.min(cap, troops[cell] + u.troops);
+    markDirty();
+    return;
+  }
+  const defTroops = troops[cell];
+  let defBonus = 0;
+  const bid = bIdAt[cell];
+  let b = bid >= 0 ? bMap.get(bid) : null;
+  if (b && b.owner !== f) {
+    if (b.type === 'wall')    defBonus = 100  * b.level;
+    if (b.type === 'outpost') defBonus = 1000 * b.level;
+  }
+  const totalDef = defTroops + defBonus;
+
+  let success = false;
+  if (u.troops > totalDef) {
+    success = true;
+    let rem = u.troops - totalDef;
+    if (b && b.owner !== f) {
+      if (b.type === 'mine') rem -= 200 * b.level;
+      if (f === playerFaction && !spectatorMode && !replayMode) log(`🏴 摧毁了 ${getFactionName(b.owner)} 的${BUILD_DEFS[b.type].name}`, 'good');
+      removeBuilding(bid);
+    }
+    if (owner[cell] !== 0 && f === playerFaction && !spectatorMode && !replayMode)
+      log(`⚔️ 攻占了 ${getFactionName(owner[cell])} 的领地 (${xOf(cell)},${yOf(cell)})`, 'good');
+    owner[cell] = f;
+    troops[cell] = rem > 0 ? Math.min(rem, capacity(cell)) : 0;
+  } else {
+    const dmg = u.troops - defBonus;
+    if (dmg > 0) troops[cell] = Math.max(0, defTroops - dmg);
+    if (f === playerFaction && !spectatorMode && !replayMode) log(`❌ 进攻失败，损失 ${u.troops} 兵`, 'warn');
+  }
+  markDirty();
+
+  if (aiLearningEnabled && aiMemory && (!isPlayer(f) || spectatorMode) && !replayMode) {
+    const mem = getAIFaction(f);
+    if (mem) {
+      mem.recentAttacks.push({
+        success,
+        targetTerrain: u.targetTerrain,
+        targetOwner: u.targetOwner,
+        troopsSent: u.troops,
+      });
+      if (mem.recentAttacks.length > 20) mem.recentAttacks.shift();
+    }
+  }
+}
+
+/* =========================================================
+   招募
+   ========================================================= */
+function recruit(f, amount) {
+  if (amount <= 0) return 0;
+  let cost = Math.ceil(amount / 100) * TROOP_PRICE;
+  if (money[f] < cost) {
+    amount = Math.floor(money[f] / TROOP_PRICE) * 100;
+    if (amount <= 0) return 0;
+  }
+  let added = 0;
+  const order = [];
+  for (let i = 0; i < N; i++) {
+    if (owner[i] !== f) continue;
+    if (troops[i] >= capacity(i)) continue;
+    if (!canRecruitAt(i, f)) continue;
+    let pri = 3;
+    if (terrain[i] === T_BASE) pri = 2;
+    const bid = bIdAt[i];
+    if (bid >= 0) {
+      const b = bMap.get(bid);
+      if (b && b.type === 'barracks') pri = 1;
+    }
+    order.push([pri, i]);
+  }
+  order.sort((a, b) => a[0] - b[0]);
+  for (const [, i] of order) {
+    if (added >= amount) break;
+    const space = capacity(i) - troops[i];
+    if (space <= 0) continue;
+    const put = Math.min(space, amount - added);
+    troops[i] += put; added += put;
+  }
+  if (added > 0) { money[f] -= Math.ceil(added / 100) * TROOP_PRICE; markDirty(); }
+  return added;
+}
+function recruitToCell(f, cell, amount) {
+  if (owner[cell] !== f) return 0;
+  if (!canRecruitAt(cell, f)) return 0;
+  const space = capacity(cell) - troops[cell];
+  let put = Math.min(space, amount);
+  if (put <= 0) return 0;
+  const cost = Math.ceil(put / 100) * TROOP_PRICE;
+  if (money[f] < cost) {
+    const afford = Math.floor(money[f] / TROOP_PRICE) * 100;
+    if (afford <= 0) return 0;
+    put = Math.min(put, afford);
+  }
+  troops[cell] += put;
+  money[f] -= Math.ceil(put / 100) * TROOP_PRICE;
+  markDirty();
+  return put;
+}
+
+/* =========================================================
+   学习系统
+   ========================================================= */
+function newMemory() {
+  return { version: 1, factions: {}, evolution: 0, totalGames: 0 };
+}
+
+function loadAIMemory() {
+  try {
+    const raw = localStorage.getItem(AI_MEMORY_KEY);
+    if (raw) {
+      const m = JSON.parse(raw);
+      if (m && m.version === 1) return m;
+    }
+  } catch (e) {
+    console.warn('[AI Memory] localStorage 读取失败，尝试内存兜底', e);
+  }
+  if (memoryFallback) return JSON.parse(JSON.stringify(memoryFallback));
+  return newMemory();
+}
+
+function saveAIMemory() {
+  memoryFallback = JSON.parse(JSON.stringify(aiMemory));
+  try {
+    localStorage.setItem(AI_MEMORY_KEY, JSON.stringify(aiMemory));
+  } catch (e) {
+    console.warn('[AI Memory] localStorage 保存失败，仅暂存内存', e);
+  }
+}
+
+function getAIFaction(f) {
+  if (!aiMemory) return null;
+  if (isPlayer(f)) return null;
+  const key = 'f' + f;
+  if (!aiMemory.factions[key]) {
+    aiMemory.factions[key] = {
+      params: { ...DIFF_CFG[aiDifficulty] },
+      wins: 0, games: 0,
+      recentAttacks: [],
+    };
+  }
+  return aiMemory.factions[key];
+}
+
+function getAIConfig(f) {
+  if (isPlayer(f)) return DIFF_CFG[aiDifficulty];
+  if (!aiLearningEnabled) return DIFF_CFG[aiDifficulty];
+  const mem = getAIFaction(f);
+  if (!mem) return DIFF_CFG[aiDifficulty];
+  return { ...DIFF_CFG[aiDifficulty], ...mem.params };
+}
+
+function adaptAIParams(f) {
+  if (!aiLearningEnabled) return;
+  const mem = getAIFaction(f);
+  if (!mem) return;
+  const rec = mem.recentAttacks;
+  if (rec.length < 8) return;
+  const winRate = rec.filter(r => r.success).length / rec.length;
+  const p = mem.params;
+  if (winRate > 0.6) {
+    p.aggression = clamp(p.aggression + 0.012, ...PARAM_BOUNDS.aggression);
+    p.buffer     = clamp(p.buffer - 6, ...PARAM_BOUNDS.buffer);
+  } else if (winRate < 0.35) {
+    p.aggression = clamp(p.aggression - 0.012, ...PARAM_BOUNDS.aggression);
+    p.buffer     = clamp(p.buffer + 8, ...PARAM_BOUNDS.buffer);
+  }
+}
+
+function evolveAfterGame(winnerFaction) {
+  if (!aiLearningEnabled || !aiMemory) return;
+  const aiList = aiFactionList();
+
+  for (const f of aiList) {
+    const mem = getAIFaction(f);
+    if (!mem) continue;
+    mem.games++;
+    if (f === winnerFaction) mem.wins++;
+  }
+
+  if ((!isPlayer(winnerFaction) || spectatorMode) && winnerFaction >= 1 && winnerFaction <= 4) {
+    const winnerMem = getAIFaction(winnerFaction);
+    if (!winnerMem) return;
+    const wp = winnerMem.params;
+    for (const f of aiList) {
+      if (f === winnerFaction) continue;
+      const mem = getAIFaction(f);
+      if (!mem) continue;
+      for (const key of LEARNABLE_KEYS) {
+        const [lo, hi] = PARAM_BOUNDS[key];
+        let v = mem.params[key] * 0.8 + wp[key] * 0.2;
+        const range = hi - lo;
+        v += (Math.random() - 0.5) * range * 0.06;
+        mem.params[key] = clamp(v, lo, hi);
+      }
+    }
+  } else {
+    for (const f of aiList) {
+      const mem = getAIFaction(f);
+      if (!mem) continue;
+      for (const key of LEARNABLE_KEYS) {
+        const [lo, hi] = PARAM_BOUNDS[key];
+        const range = hi - lo;
+        mem.params[key] = clamp(
+          mem.params[key] + (Math.random() - 0.5) * range * 0.04,
+          lo, hi
+        );
+      }
+    }
+  }
+
+  aiMemory.evolution++;
+  aiMemory.totalGames++;
+  saveAIMemory();
+  updateAIPanel();
+}
+
+async function quickTrain(nGames) {
+  if (isTraining) return;
+  if (!aiLearningEnabled) {
+    alert('请先在开局设置里开启 AI 学习');
+    return;
+  }
+  isTraining = true;
+  const btn = document.getElementById('btn-train');
+  const origText = btn.textContent;
+  btn.disabled = true;
+
+  const snapshot = snapshotGame();
+  const stats = { 1:0, 2:0, 3:0, 4:0 };
+  const origPaused = paused;
+  paused = true;
+
+  const origEnabled = aiLearningEnabled;
+  aiLearningEnabled = true;
+
+  for (let g = 0; g < nGames; g++) {
+    resetForTraining();
+    for (const f of aiFactionList()) {
+      const mem = getAIFaction(f);
+      if (mem) mem.recentAttacks = [];
+    }
+    let ticks = 0;
+    const MAX_TICKS = 500;
+    while (!gameOver && ticks < MAX_TICKS) {
+      doTick(true);
+      updateUnits(TICK_MS / 1000);
+      ticks++;
+      // 让出主线程，防止长时间冻结 UI
+      if (ticks % 40 === 0) await new Promise(r => setTimeout(r, 0));
+    }
+    const winner = determineWinner();
+    if (winner >= 1 && winner <= 4) stats[winner]++;
+    evolveAfterGame(winner);
+    btn.textContent = `⏳ ${g + 1}/${nGames}`;
+    await new Promise(r => setTimeout(r, 0));
+  }
+
+  restoreGame(snapshot);
+  paused = origPaused;
+  aiLearningEnabled = origEnabled;
+  isTraining = false;
+  btn.disabled = false;
+  btn.textContent = origText;
+  updateAIPanel();
+  const parts = [];
+  for (const f of aiFactionList()) parts.push(`${COLOR_NAMES[f]} ${stats[f] || 0}`);
+  log(`🧠 训练完成：${nGames} 局 · 陪练 ${stats[playerFaction] || 0} / ${parts.join(' / ')} · 进化代数 ${aiMemory.evolution}`, 'good');
+}
+
+function determineWinner() {
+  const alive = [false,false,false,false,false];
+  const land = [0,0,0,0,0];
+  for (let i = 0; i < N; i++) {
+    const o = owner[i];
+    if (o !== 0) { alive[o] = true; land[o]++; }
+  }
+  const list = [];
+  for (let f = 1; f <= 4; f++) if (alive[f]) list.push(f);
+  if (list.length === 1) return list[0];
+  let best = 0, bestLand = -1;
+  for (let f = 1; f <= 4; f++) if (land[f] > bestLand) { bestLand = land[f]; best = f; }
+  return best;
+}
+
+function resetForTraining() {
+  const preset = MAP_PRESETS[mapPreset];
+  owner.fill(0); troops.fill(0); terrain.fill(0); bIdAt.fill(-1);
+  buildings = []; bMap.clear(); nextBId = 0;
+  money = [0, 2000, 2000, 2000, 2000];
+  units = [];
+  tickCount = 0; tickAcc = 0;
+  aiTimers = [0,0,0,0,0];
+  gameOver = false;
+  resourceCells = [];
+  initMap(preset);
+}
+
+function snapshotGame() {
+  return {
+    W, H, N,
+    owner: owner.slice(), troops: troops.slice(),
+    terrain: terrain.slice(), bIdAt: bIdAt.slice(),
+    buildings: buildings.map(b => ({ ...b, cells: b.cells.slice() })),
+    nextBId, money: money.slice(),
+    units: units.map(u => ({ ...u, path: u.path.slice() })),
+    tickCount, tickAcc, mapPreset, aiDifficulty, gameOver, paused,
+    resourceCells: resourceCells.slice(),
+    aiTimers: aiTimers.slice(),
+    playerFaction,
+  };
+}
+
+function restoreGame(s) {
+  if (owner.length !== s.N) allocBuffers(s.W, s.H);
+  W = s.W; H = s.H; N = s.N;
+  owner.set(s.owner); troops.set(s.troops);
+  terrain.set(s.terrain); bIdAt.set(s.bIdAt);
+  buildings = s.buildings.map(b => ({ ...b, cells: b.cells.slice() }));
+  bMap.clear();
+  for (const b of buildings) bMap.set(b.id, b);
+  nextBId = s.nextBId;
+  money = s.money.slice();
+  units = s.units.map(u => ({ ...u, path: u.path.slice() }));
+  tickCount = s.tickCount; tickAcc = s.tickAcc;
+  mapPreset = s.mapPreset; aiDifficulty = s.aiDifficulty;
+  gameOver = s.gameOver; paused = s.paused;
+  resourceCells = s.resourceCells.slice();
+  aiTimers = s.aiTimers.slice();
+  if (s.playerFaction) playerFaction = s.playerFaction;
+  selectedUnit = null; rerouteMode = false;
+  fitCanvas(); fitView();
+  markDirty(); refreshMapPixels();
+  updateBadges(); updateSidebar(); updateInfoPanel();
+}
+
+/* =========================================================
+   地图初始化
+   ========================================================= */
+function initMap(preset) {
+  const { w, h, midSize, highSize, lowCount } = preset;
+  const midX0 = Math.floor((w - midSize) / 2);
+  const midY0 = Math.floor((h - midSize) / 2);
+  for (let y = midY0; y < midY0 + midSize; y++)
+    for (let x = midX0; x < midX0 + midSize; x++)
+      terrain[idxOf(x, y)] = T_MID;
+
+  const corners = [[0,0],[w-highSize,0],[0,h-highSize],[w-highSize,h-highSize]];
+  for (const [cx, cy] of corners)
+    for (let y = cy; y < cy + highSize; y++)
+      for (let x = cx; x < cx + highSize; x++)
+        terrain[idxOf(x, y)] = T_HIGH;
+
+  const bx1 = (w >> 1) - 1, by1 = (h >> 1) - 1;
+  const bases = [[bx1, 0, 1], [w - 2, by1, 2], [bx1, h - 2, 3], [0, by1, 4]];
+
+  const spots = [];
+  const margin = Math.max(2, Math.floor(w * 0.04));
+  const minGap = Math.max(3, Math.floor(w * 0.08));
+  let tries = 0;
+  while (spots.length < lowCount && tries < 30000) {
+    tries++;
+    const x = margin + Math.floor(Math.random() * (w - margin * 2));
+    const y = margin + Math.floor(Math.random() * (h - margin * 2));
+    if (x >= midX0 - 2 && x < midX0 + midSize + 2 &&
+        y >= midY0 - 2 && y < midY0 + midSize + 2) continue;
+    let nearCorner = false;
+    for (const [cx, cy] of corners)
+      if (x >= cx - 2 && x < cx + highSize + 2 &&
+          y >= cy - 2 && y < cy + highSize + 2) { nearCorner = true; break; }
+    if (nearCorner) continue;
+    let nearBase = false;
+    for (const [bx, by] of bases)
+      if (Math.abs(x - bx) < minGap && Math.abs(y - by) < minGap) { nearBase = true; break; }
+    if (nearBase) continue;
+    let ok = true;
+    for (const [px, py] of spots)
+      if (Math.abs(px - x) < minGap && Math.abs(py - y) < minGap) { ok = false; break; }
+    if (!ok) continue;
+    spots.push([x, y]);
+  }
+  for (const [x, y] of spots)
+    for (let dy = 0; dy < 2; dy++)
+      for (let dx = 0; dx < 2; dx++) {
+        const xi = x + dx, yi = y + dy;
+        if (xi < w && yi < h) terrain[idxOf(xi, yi)] = T_LOW;
+      }
+
+  for (const [bx, by, f] of bases)
+    for (let dy = 0; dy < 2; dy++)
+      for (let dx = 0; dx < 2; dx++) {
+        const xi = bx + dx, yi = by + dy;
+        if (xi < 0 || xi >= w || yi < 0 || yi >= h) continue;
+        const i = idxOf(xi, yi);
+        terrain[i] = T_BASE;
+        owner[i] = f;
+        troops[i] = 500;
+      }
+
+  resourceCells.length = 0;
+  for (let i = 0; i < N; i++) {
+    const t = terrain[i];
+    if (t === T_LOW || t === T_MID || t === T_HIGH) resourceCells.push(i);
+  }
+}
+
+/* =========================================================
+   Tick
+   ========================================================= */
+function doTick(silent = false) {
+  tickCount++;
+  const earn = [0,0,0,0,0], landCount = [0,0,0,0,0];
+  for (let i = 0; i < N; i++) {
+    const o = owner[i];
+    if (o === 0) continue;
+    landCount[o]++;
+    earn[o] += T_INCOME[terrain[i]];
+  }
+  for (let f = 1; f <= 4; f++) {
+    if (landCount[f] > 0) earn[f] += BASE_INCOME;
+    money[f] += earn[f];
+  }
+
+  for (const b of buildings) {
+    if (b.type !== 'barracks' || b.owner === 0) continue;
+    let left = 100 * b.level;
+    for (const c of b.cells) {
+      if (left <= 0) break;
+      const space = capacity(c) - troops[c];
+      if (space <= 0) continue;
+      const put = Math.min(space, left);
+      troops[c] += put; left -= put;
+    }
+  }
+
+  if (!replayMode) {
+    for (const f of aiFactionList()) {
+      const cfg = getAIConfig(f);
+      aiTimers[f]++;
+      if (aiTimers[f] >= cfg.thinkEvery) {
+        aiTimers[f] = 0;
+        runAI(f);
+      }
+    }
+
+    if (isTraining && aiFactionList().indexOf(playerFaction) === -1) {
+      const cfg = getAIConfig(playerFaction);
+      aiTimers[playerFaction]++;
+      if (aiTimers[playerFaction] >= cfg.thinkEvery) {
+        aiTimers[playerFaction] = 0;
+        runAI(playerFaction);
+      }
+    }
+
+    for (const f of aiFactionList()) adaptAIParams(f);
+  }
+
+  if (!silent) markDirty();
+  checkGameOver();
+}
+
+/* =========================================================
+   AI 接口
+   ========================================================= */
+window.AI_PLUGIN = null;
+let currentAIPluginName = '内置 AI v2';
+
+function createVirtualTroops() {
+  const delta = new Map();
+  return {
+    get(i) { const d = delta.get(i); return d !== undefined ? troops[i] + d : troops[i]; },
+    add(i, n) { delta.set(i, (delta.get(i) || 0) + n); },
+    sub(i, n) { delta.set(i, (delta.get(i) || 0) - n); },
+  };
+}
+
+function buildAIContext(f) {
+  return {
+    faction: f,
+    difficulty: aiDifficulty,
+    config: getAIConfig(f),
+    w: W, h: H, n: N,
+    owner, troops, terrain, money, buildings, resourceCells,
+    helpers: {
+      idxOf, xOf, yOf, manhattan, capacity,
+      buildingAt: (i) => bIdAt[i] >= 0 ? bMap.get(bIdAt[i]) : null,
+      canPlace: (type, x, y) => canPlace(type, x, y, f),
+      canRecruitAt: (i) => canRecruitAt(i, f),
+    },
+  };
+}
+
+function executeAIAction(f, action) {
+  if (!action || typeof action !== 'object') return false;
+  switch (action.type) {
+    case 'recruit':     return recruit(f, action.amount | 0) > 0;
+    case 'recruitCell': return recruitToCell(f, action.cell | 0, action.amount | 0) > 0;
+    case 'build':       return placeBuilding(action.building, action.x | 0, action.y | 0, f);
+    case 'upgrade':     return upgradeBuilding(action.id, f);
+    case 'dispatch':    return dispatch(f, action.from | 0, action.to | 0, action.amount | 0);
+  }
+  return false;
+}
+
+/* ★ 统一动作入口：录制 + 执行 */
+function doAction(f, action) {
+  if (!action || typeof action !== 'object') return false;
+  if (recorder && !isTraining && !replayMode) {
+    var copy = {};
+    for (var k in action) if (Object.prototype.hasOwnProperty.call(action, k)) copy[k] = action[k];
+    recorder.events.push({ t: tickCount, f: f, a: copy });
+  }
+  return executeAIAction(f, action);
+}
+
+function runAI(f) {
+  if (gameOver) return;
+  const ctx = buildAIContext(f);
+  let actions = [];
+  try {
+    if (window.AI_PLUGIN && typeof window.AI_PLUGIN.think === 'function') {
+      const r = window.AI_PLUGIN.think(ctx);
+      if (Array.isArray(r)) actions = r;
+    } else {
+      actions = AI_BUILTIN.think(ctx);
+    }
+  } catch (e) { console.error(`[AI] 势力 ${f} 出错:`, e); return; }
+  if (!Array.isArray(actions)) actions = [];
+  if (actions.length > 30) actions = actions.slice(0, 30);
+  for (const a of actions) {
+    try { doAction(f, a); }
+    catch (e) { console.error('[AI] 动作失败:', a, e); }
+  }
+}
+
+/* =========================================================
+   内置 AI
+   ========================================================= */
+const AI_BUILTIN = {
+  name: '内置 AI v2',
+  version: '2.0',
+  think(ctx) {
+    const f = ctx.faction;
+    const cfg = ctx.config;
+    if (!cfg) return [];
+    const vt = createVirtualTroops();
+    const stats = aiCollectStats(f);
+    if (stats.cells.length === 0) return [];
+    const actions = [];
+    const ra = aiPlanRecruit(f, cfg, stats, vt);
+    if (ra) actions.push(ra);
+    actions.push(...aiPlanBuild(f, cfg, stats, vt));
+    for (let k = 0; k < cfg.maxAttacks; k++) {
+      const aa = aiPlanAttack(f, cfg, stats, vt);
+      if (!aa) break;
+      actions.push(aa);
+    }
+    const da = aiPlanDefend(f, cfg, stats, vt);
+    if (da) actions.push(da);
+    return actions;
+  },
+};
+
+function aiCollectStats(f) {
+  const s = { cells: [], borders: [], barracks: [], bases: [], outposts: [], income: 0 };
+  for (let i = 0; i < N; i++) {
+    if (owner[i] !== f) continue;
+    s.cells.push(i);
+    s.income += T_INCOME[terrain[i]];
+    const b = bIdAt[i] >= 0 ? bMap.get(bIdAt[i]) : null;
+    if (b) {
+      if (b.type === 'barracks') s.barracks.push(i);
+      else if (b.type === 'outpost') s.outposts.push(i);
+    }
+    if (terrain[i] === T_BASE) s.bases.push(i);
+    for (const [dx, dy] of DIRS) {
+      const nx = xOf(i) + dx, ny = yOf(i) + dy;
+      if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
+      if (owner[idxOf(nx, ny)] !== f) { s.borders.push(i); break; }
+    }
+  }
+  return s;
+}
+
+function aiPlanRecruit(f, cfg, stats, vt) {
+  const budget = money[f] * cfg.moneyUse;
+  if (budget < TROOP_PRICE) return null;
+  const amount = Math.floor(budget / TROOP_PRICE) * 100;
+  if (amount < 100) return null;
+  const targets = [...stats.barracks, ...stats.bases];
+  let totalSpace = 0;
+  for (const i of targets) totalSpace += capacity(i) - vt.get(i);
+  if (totalSpace < 100) return null;
+  const real = Math.min(amount, Math.floor(totalSpace / 100) * 100);
+  if (real < 100) return null;
+  let left = real;
+  for (const i of targets) {
+    if (left <= 0) break;
+    const sp = capacity(i) - vt.get(i);
+    const put = Math.min(sp, left);
+    vt.add(i, put); left -= put;
+  }
+  return { type: 'recruit', amount: real };
+}
+
+function aiPlanBuild(f, cfg, stats, vt) {
+  const actions = [];
+  if (stats.barracks.length < cfg.maxBarracks && money[f] >= 500) {
+    const spot = aiFindBarracksSpot(f, stats);
+    if (spot) actions.push({ type: 'build', building: 'barracks', x: spot.x, y: spot.y });
+  }
+  if (cfg.buildDefense && stats.borders.length > 0) {
+    if (money[f] >= 800 && stats.outposts.length < 3 && Math.random() < 0.35) {
+      const spot = aiFindBorderSpot(f, stats, 'outpost');
+      if (spot) actions.push({ type: 'build', building: 'outpost', x: spot.x, y: spot.y });
+    }
+    if (money[f] >= 100 && Math.random() < 0.25) {
+      const spot = aiFindBorderSpot(f, stats, 'wall');
+      if (spot) actions.push({ type: 'build', building: 'wall', x: spot.x, y: spot.y });
+    }
+    if (cfg.preferPlayer && money[f] >= 300 && Math.random() < 0.2) {
+      const spot = aiFindBorderSpot(f, stats, 'mine');
+      if (spot) actions.push({ type: 'build', building: 'mine', x: spot.x, y: spot.y });
+    }
+  }
+  if (money[f] > 2000 && stats.barracks.length > 0 && Math.random() < 0.3) {
+    for (const bc of stats.barracks) {
+      const b = bIdAt[bc] >= 0 ? bMap.get(bIdAt[bc]) : null;
+      if (b && b.level < 5 && money[f] >= BUILD_DEFS.barracks.up * b.level) {
+        actions.push({ type: 'upgrade', id: b.id });
+        break;
+      }
+    }
+  }
+  return actions;
+}
+
+function aiFindBarracksSpot(f, stats) {
+  const candidates = [];
+  for (const i of stats.cells) {
+    if (bIdAt[i] >= 0) continue;
+    if (terrain[i] === T_BASE) continue;
+    candidates.push(i);
+  }
+  for (let k = candidates.length - 1; k > 0; k--) {
+    const j = Math.floor(Math.random() * (k + 1));
+    [candidates[k], candidates[j]] = [candidates[j], candidates[k]];
+  }
+  for (const i of candidates) {
+    const cx = xOf(i), cy = yOf(i);
+    for (let oy = -1; oy <= 0; oy++)
+      for (let ox = -1; ox <= 0; ox++) {
+        const px = cx + ox, py = cy + oy;
+        if (canPlace('barracks', px, py, f)) return { x: px, y: py };
+      }
+  }
+  return null;
+}
+
+function aiFindBorderSpot(f, stats, type) {
+  const list = [...stats.borders].sort(() => Math.random() - 0.5);
+  for (const i of list) {
+    const cx = xOf(i), cy = yOf(i);
+    const offsets = type === 'wall' || type === 'mine'
+      ? [[0, 0]] : [[-1, -1], [0, 0], [-1, 0], [0, -1]];
+    for (const [ox, oy] of offsets) {
+      const px = cx + ox, py = cy + oy;
+      if (canPlace(type, px, py, f)) return { x: px, y: py };
+    }
+  }
+  return null;
+}
+
+function aiPlanAttack(f, cfg, stats, vt) {
+  let src = -1, srcTroops = 0;
+  for (const i of stats.cells) {
+    const t = vt.get(i);
+    if (t > srcTroops) { srcTroops = t; src = i; }
+  }
+  if (src < 0 || srcTroops < 200) return null;
+  const keepBack = Math.max(100, Math.floor(srcTroops * cfg.keepBackRatio));
+  const usable = srcTroops - keepBack;
+  if (usable < 100) return null;
+
+  let best = -1, bestCost = 0, bestScore = -Infinity;
+  for (const ci of resourceCells) {
+    if (owner[ci] === f) continue;
+    const dist = manhattan(src, ci);
+    if (dist === 0) continue;
+    const isEnemy = owner[ci] !== 0;
+    const buf = isEnemy ? cfg.buffer : 80;
+    const cost = dist * MOVE_COST + vt.get(ci) + buf;
+    if (cost > usable) continue;
+    let val = T_INCOME[terrain[ci]] * 30 - dist * 2;
+    if (owner[ci] !== 0) val += 50;
+    val *= cfg.aggression;
+    if (cfg.preferPlayer && isPlayer(owner[ci])) val += 80;
+    if (val > bestScore) { bestScore = val; best = ci; bestCost = cost; }
+  }
+  for (const b of buildings) {
+    if (b.owner === f || b.owner === 0) continue;
+    const cell = b.cells[0];
+    const dist = manhattan(src, cell);
+    if (dist === 0) continue;
+    const cost = dist * MOVE_COST + vt.get(cell) + cfg.buffer;
+    if (cost > usable) continue;
+    let val = 40;
+    if (b.type === 'barracks') val += 100;
+    else if (b.type === 'outpost') val += 60;
+    else if (b.type === 'mine') val += 10;
+    if (terrain[cell] === T_BASE) val += 200;
+    val -= dist * 2;
+    val *= cfg.aggression;
+    if (cfg.preferPlayer && isPlayer(b.owner)) val += 100;
+    if (val > bestScore) { bestScore = val; best = cell; bestCost = cost; }
+  }
+  if (best < 0) {
+    let closest = -1, closestDist = Infinity;
+    for (const sc of stats.cells) {
+      for (const [dx, dy] of DIRS) {
+        const nx = xOf(sc) + dx, ny = yOf(sc) + dy;
+        if (nx < 0 || nx >= W || ny < 0 || ny >= H) continue;
+        const ni = idxOf(nx, ny);
+        if (owner[ni] === f) continue;
+        const cost = MOVE_COST + vt.get(ni) + 50;
+        if (cost > usable) continue;
+        const d = manhattan(src, ni);
+        if (d < closestDist) { closestDist = d; closest = ni; }
+      }
+    }
+    if (closest >= 0) {
+      best = closest;
+      bestCost = closestDist * MOVE_COST + vt.get(closest) + 50;
+    }
+  }
+  if (best < 0 || bestCost < 100) return null;
+  vt.sub(src, bestCost);
+  return { type: 'dispatch', from: src, to: best, amount: bestCost };
+}
+
+function aiPlanDefend(f, cfg, stats, vt) {
+  if (stats.borders.length === 0) return null;
+  const weak = [];
+  for (const i of stats.borders) {
+    const cap = capacity(i);
+    const t = vt.get(i);
+    if (t < cap * 0.3 && t < 200) weak.push(i);
+  }
+  if (weak.length === 0) return null;
+  let src = -1, srcTroops = 0;
+  for (const i of stats.cells) {
+    if (stats.borders.indexOf(i) !== -1) continue;
+    const t = vt.get(i);
+    if (t > srcTroops && t > 300) { srcTroops = t; src = i; }
+  }
+  if (src < 0) return null;
+  let target = weak[0], minDist = Infinity;
+  for (const w of weak) {
+    const d = manhattan(src, w);
+    if (d < minDist) { minDist = d; target = w; }
+  }
+  const send = Math.floor(srcTroops * 0.5);
+  if (send < 100) return null;
+  vt.sub(src, send);
+  return { type: 'dispatch', from: src, to: target, amount: send };
+}
+
+/* =========================================================
+   离屏地图
+   ========================================================= */
+const off = document.createElement('canvas');
+const offCtx = off.getContext('2d');
+let imgData, pixData;
+
+function refreshMapPixels() {
+  for (let i = 0; i < N; i++) {
+    const t = terrain[i], o = owner[i];
+    let r, g, b;
+    switch (t) {
+      case T_PLAIN: r=250; g=251; b=253; break;
+      case T_LOW:   r=253; g=230; b=138; break;
+      case T_MID:   r=221; g=214; b=254; break;
+      case T_HIGH:  r=254; g=215; b=170; break;
+      case T_BASE:  r=186; g=230; b=253; break;
+      default:      r=250; g=251; b=253;
+    }
+    if (o !== 0) {
+      const c = FACTION_RGB[o], dk = FACTION_DARK[o];
+      const k = 0.42;
+      r = r * (1 - k) + c[0] * k;
+      g = g * (1 - k) + c[1] * k;
+      b = b * (1 - k) + c[2] * k;
+      let cap = 150;
+      const bid = bIdAt[i];
+      if (bid >= 0) {
+        const bb = bMap.get(bid);
+        if (bb) {
+          if (bb.type === 'barracks') cap = 250 * bb.level;
+          else if (bb.type === 'wall') cap = 300 * bb.level;
+          else if (bb.type === 'outpost') cap = 2000;
+        }
+      } else if (t === T_BASE) cap = 1000;
+      const ratio = Math.min(1, troops[i] / cap);
+      const s = ratio * 0.5;
+      r = r * (1 - s) + dk[0] * s;
+      g = g * (1 - s) + dk[1] * s;
+      b = b * (1 - s) + dk[2] * s;
+    }
+    const p = i * 4;
+    pixData[p] = r | 0; pixData[p+1] = g | 0;
+    pixData[p+2] = b | 0; pixData[p+3] = 255;
+  }
+  offCtx.putImageData(imgData, 0, 0);
+}
+
+/* =========================================================
+   相机 & 渲染
+   ========================================================= */
+const canvas = document.getElementById('map');
+const ctx = canvas.getContext('2d');
+let cssW = 700, cssH = 700;
+let cam = { px: 0, py: 0, zoom: 7 };
+let minZoom = 3, maxZoom = 40;
+let baseZoom = 7;
+
+function fitCanvas() {
+  const wrap = document.getElementById('mapWrap');
+  const availW = Math.max(200, wrap.clientWidth - 20);
+  const availH = Math.max(200, wrap.clientHeight - 20);
+  const size = Math.max(200, Math.min(availW, availH));
+  const dpr = window.devicePixelRatio || 1;
+  canvas.style.width = size + 'px'; canvas.style.height = size + 'px';
+  canvas.width = Math.round(size * dpr); canvas.height = Math.round(size * dpr);
+  cssW = cssH = size;
+}
+function fitView() {
+  const z = (cssW * 0.94) / W;
+  baseZoom = z; cam.zoom = z;
+  cam.px = (cssW - W * z) / 2; cam.py = (cssH - H * z) / 2;
+  minZoom = z * 0.8; maxZoom = 34;
+  updateZoomBadge();
+}
+function updateZoomBadge() {
+  const el = document.getElementById('zoomBadge');
+  if (el) el.textContent = (cam.zoom / baseZoom * 100).toFixed(0) + '%';
+}
+
+function render() {
+  const dpr = window.devicePixelRatio || 1;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  const z = cam.zoom;
+  ctx.setTransform(dpr * z, 0, 0, dpr * z, dpr * cam.px, dpr * cam.py);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(off, 0, 0, W, H);
+  if (z > 5) {
+    const x0 = clamp(Math.floor(-cam.px / z), 0, W);
+    const x1 = clamp(Math.ceil((cssW - cam.px) / z), 0, W);
+    const y0 = clamp(Math.floor(-cam.py / z), 0, H);
+    const y1 = clamp(Math.ceil((cssH - cam.py) / z), 0, H);
+    ctx.lineWidth = 1 / z;
+    ctx.strokeStyle = 'rgba(100,116,139,0.18)';
+    ctx.beginPath();
+    for (let x = x0; x <= x1; x++) { ctx.moveTo(x, y0); ctx.lineTo(x, y1); }
+    for (let y = y0; y <= y1; y++) { ctx.moveTo(x0, y); ctx.lineTo(x1, y); }
+    ctx.stroke();
+  }
+  for (const b of buildings) {
+    const d = BUILD_DEFS[b.type];
+    const col = FACTION_COLOR[b.owner];
+    const x0 = b.x, y0 = b.y, bw = d.w, bh = d.h;
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    ctx.fillRect(x0 + 0.06, y0 + 0.06, bw - 0.12, bh - 0.12);
+    ctx.strokeStyle = col;
+    ctx.lineWidth = Math.max(1.1 / z, 0.12);
+    ctx.strokeRect(x0 + 0.08, y0 + 0.08, bw - 0.16, bh - 0.16);
+    ctx.fillStyle = col;
+    if (b.type === 'barracks') ctx.fillRect(x0 + bw*0.3, y0 + bh*0.3, bw*0.4, bh*0.4);
+    else if (b.type === 'outpost') {
+      ctx.beginPath(); ctx.arc(x0 + bw/2, y0 + bh/2, Math.min(bw,bh)*0.27, 0, Math.PI*2); ctx.fill();
+      ctx.beginPath(); ctx.arc(x0 + bw/2, y0 + bh/2, Math.min(bw,bh)*0.42, 0, Math.PI*2);
+      ctx.strokeStyle = col; ctx.lineWidth = Math.max(0.8 / z, 0.08); ctx.stroke();
+    } else if (b.type === 'wall') ctx.fillRect(x0 + 0.22, y0 + 0.22, 0.56, 0.56);
+    else if (b.type === 'mine') {
+      ctx.beginPath(); ctx.arc(x0 + 0.5, y0 + 0.5, 0.2, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#dc2626'; ctx.lineWidth = Math.max(0.8 / z, 0.07); ctx.stroke();
+    }
+    if (b.level > 1 && z > 3) {
+      ctx.fillStyle = '#fff';
+      for (let lv = 0; lv < b.level; lv++) {
+        ctx.beginPath();
+        ctx.arc(x0 + 0.22 + lv * 0.22, y0 + bh - 0.18, 0.07, 0, Math.PI*2);
+        ctx.fill();
+      }
+    }
+  }
+  for (const u of units) {
+    const px = u.px + 0.5, py = u.py + 0.5;
+    const r = clamp(Math.sqrt(u.troops) * 0.008, 0.22, 0.9);
+    ctx.beginPath(); ctx.arc(px, py, r, 0, Math.PI * 2);
+    ctx.fillStyle = FACTION_COLOR[u.owner];
+    ctx.globalAlpha = 0.9; ctx.fill(); ctx.globalAlpha = 1;
+    ctx.strokeStyle = '#fff'; ctx.lineWidth = Math.max(1.2 / z, 0.09); ctx.stroke();
+    if (u === selectedUnit) {
+      ctx.beginPath(); ctx.arc(px, py, r + 0.4, 0, Math.PI*2);
+      ctx.strokeStyle = rerouteMode ? '#f59e0b' : '#dc2626';
+      ctx.lineWidth = Math.max(2 / z, 0.14);
+      ctx.stroke();
+    }
+  }
+  if (hoverCell >= 0 && !moveMode && !rerouteMode && !replayMode) {
+    ctx.strokeStyle = 'rgba(15,23,42,0.28)';
+    ctx.lineWidth = 1.4 / z;
+    ctx.strokeRect(xOf(hoverCell) + 0.04, yOf(hoverCell) + 0.04, 0.92, 0.92);
+  }
+  if (selected !== null) {
+    const sx = xOf(selected), sy = yOf(selected);
+    ctx.strokeStyle = '#0f172a'; ctx.lineWidth = 2.2 / z;
+    ctx.strokeRect(sx + 0.03, sy + 0.03, 0.94, 0.94);
+  }
+  if (moveMode && selected !== null && hoverCell >= 0 && hoverCell !== selected) {
+    const previewPath = findPath(xOf(selected), yOf(selected), xOf(hoverCell), yOf(hoverCell), playerFaction);
+    if (previewPath && previewPath.length >= 2) {
+      ctx.fillStyle = 'rgba(37,99,235,0.14)';
+      for (const c of previewPath) ctx.fillRect(xOf(c), yOf(c), 1, 1);
+      ctx.strokeStyle = 'rgba(37,99,235,0.75)';
+      ctx.lineWidth = Math.max(1.8 / z, 0.12);
+      ctx.setLineDash([0.28 / Math.max(z/8, 1), 0.18 / Math.max(z/8, 1)]);
+      ctx.beginPath();
+      for (let k = 0; k < previewPath.length; k++) {
+        const c = previewPath[k];
+        const px = xOf(c) + 0.5, py = yOf(c) + 0.5;
+        if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.strokeStyle = '#2563eb'; ctx.lineWidth = 2 / z;
+      ctx.strokeRect(xOf(hoverCell) + 0.05, yOf(hoverCell) + 0.05, 0.9, 0.9);
+    } else {
+      ctx.strokeStyle = '#dc2626'; ctx.lineWidth = 2 / z;
+      ctx.strokeRect(xOf(hoverCell) + 0.05, yOf(hoverCell) + 0.05, 0.9, 0.9);
+    }
+  }
+  if (rerouteMode && selectedUnit && hoverCell >= 0) {
+    const startIdx = selectedUnit.path[selectedUnit.seg - 1];
+    const previewPath = findPath(xOf(startIdx), yOf(startIdx), xOf(hoverCell), yOf(hoverCell), playerFaction);
+    if (previewPath && previewPath.length >= 2) {
+      ctx.fillStyle = 'rgba(245,158,11,0.18)';
+      for (const c of previewPath) ctx.fillRect(xOf(c), yOf(c), 1, 1);
+      ctx.strokeStyle = 'rgba(245,158,11,0.9)';
+      ctx.lineWidth = Math.max(1.8 / z, 0.12);
+      ctx.setLineDash([0.28 / Math.max(z/8, 1), 0.18 / Math.max(z/8, 1)]);
+      ctx.beginPath();
+      for (let k = 0; k < previewPath.length; k++) {
+        const c = previewPath[k];
+        const px = xOf(c) + 0.5, py = yOf(c) + 0.5;
+        if (k === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+      }
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.strokeStyle = '#f59e0b'; ctx.lineWidth = 2 / z;
+      ctx.strokeRect(xOf(hoverCell) + 0.05, yOf(hoverCell) + 0.05, 0.9, 0.9);
+    } else {
+      ctx.strokeStyle = '#dc2626'; ctx.lineWidth = 2 / z;
+      ctx.strokeRect(xOf(hoverCell) + 0.05, yOf(hoverCell) + 0.05, 0.9, 0.9);
+    }
+  }
+  if (placing && hoverCell >= 0) {
+    const d = BUILD_DEFS[placing];
+    const ox = xOf(hoverCell) - Math.floor((d.w - 1) / 2);
+    const oy = yOf(hoverCell) - Math.floor((d.h - 1) / 2);
+    const ok = canPlace(placing, ox, oy, playerFaction) && money[playerFaction] >= d.cost;
+    ctx.fillStyle = ok ? 'rgba(34,197,94,0.28)' : 'rgba(239,68,68,0.28)';
+    ctx.fillRect(ox, oy, d.w, d.h);
+    ctx.strokeStyle = ok ? '#16a34a' : '#dc2626';
+    ctx.lineWidth = 2 / z;
+    ctx.strokeRect(ox + 0.03, oy + 0.03, d.w - 0.06, d.h - 0.06);
+  }
+}
+
+/* =========================================================
+   交互
+   ========================================================= */
+function clientToCell(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) return -1;
+  const mx = (clientX - rect.left) * (cssW / rect.width);
+  const my = (clientY - rect.top)  * (cssH / rect.height);
+  const wx = (mx - cam.px) / cam.zoom;
+  const wy = (my - cam.py) / cam.zoom;
+  const x = Math.floor(wx), y = Math.floor(wy);
+  if (x < 0 || x >= W || y < 0 || y >= H) return -1;
+  return idxOf(x, y);
+}
+
+function findUnitAt(clientX, clientY) {
+  const rect = canvas.getBoundingClientRect();
+  if (rect.width === 0 || rect.height === 0) return null;
+  const mx = (clientX - rect.left) * (cssW / rect.width);
+  const my = (clientY - rect.top)  * (cssH / rect.height);
+  const wx = (mx - cam.px) / cam.zoom;
+  const wy = (my - cam.py) / cam.zoom;
+  const myFaction = (spectatorMode || replayMode) ? 0 : playerFaction;
+  if (!myFaction) return null;
+  let best = null, bestD2 = 2.5 * 2.5;
+  for (const u of units) {
+    if (u.owner !== myFaction) continue;
+    const dx = u.px + 0.5 - wx;
+    const dy = u.py + 0.5 - wy;
+    const d2 = dx*dx + dy*dy;
+    if (d2 < bestD2) { bestD2 = d2; best = u; }
+  }
+  return best;
+}
+
+let mouseDown = false, mouseMoved = false, mLastX = 0, mLastY = 0;
+let lastTouchTime = 0;
+
+canvas.addEventListener('mousedown', e => {
+  if (Date.now() - lastTouchTime < 800) return;
+  if (e.button !== 0) return;
+  mouseDown = true; mouseMoved = false;
+  mLastX = e.clientX; mLastY = e.clientY;
+  e.preventDefault();
+});
+window.addEventListener('mousemove', e => {
+  if (Date.now() - lastTouchTime < 800) return;
+  hoverCell = clientToCell(e.clientX, e.clientY);
+  if (!mouseDown) return;
+  const dx = e.clientX - mLastX, dy = e.clientY - mLastY;
+  if (Math.abs(dx) + Math.abs(dy) > 3) mouseMoved = true;
+  if (mouseMoved) {
+    const rect = canvas.getBoundingClientRect();
+    cam.px += dx * (cssW / rect.width);
+    cam.py += dy * (cssH / rect.height);
+    mLastX = e.clientX; mLastY = e.clientY;
+  }
+});
+window.addEventListener('mouseup', e => {
+  if (Date.now() - lastTouchTime < 800) return;
+  if (!mouseDown) return;
+  mouseDown = false;
+  if (!mouseMoved && e.button === 0) handleClick(e.clientX, e.clientY);
+});
+canvas.addEventListener('mouseleave', () => { hoverCell = -1; });
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const rect = canvas.getBoundingClientRect();
+  const mx = (e.clientX - rect.left) * (cssW / rect.width);
+  const my = (e.clientY - rect.top)  * (cssH / rect.height);
+  const wx = (mx - cam.px) / cam.zoom;
+  const wy = (my - cam.py) / cam.zoom;
+  const factor = e.deltaY < 0 ? 1.18 : 1 / 1.18;
+  const nz = clamp(cam.zoom * factor, minZoom, maxZoom);
+  cam.zoom = nz;
+  cam.px = mx - wx * nz;
+  cam.py = my - wy * nz;
+  updateZoomBadge();
+}, { passive: false });
+canvas.addEventListener('dblclick', () => { fitView(); });
+canvas.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  placing = null; moveMode = false; rerouteMode = false;
+  selectedUnit = null;
+  refreshShop(); updateInfoPanel();
+});
+window.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    placing = null; moveMode = false; rerouteMode = false;
+    selectedUnit = null;
+    refreshShop(); updateInfoPanel();
+  }
+});
+
+const touchPts = new Map();
+const touchState = {
+  mode: null, startX: 0, startY: 0, lastX: 0, lastY: 0,
+  startTime: 0, startDist: 1, startZoom: 1, anchorWX: 0, anchorWY: 0,
+};
+const ptsArray = () => Array.from(touchPts.values());
+
+canvas.addEventListener('touchstart', e => {
+  e.preventDefault();
+  lastTouchTime = Date.now();
+  for (const t of e.changedTouches)
+    touchPts.set(t.identifier, { x: t.clientX, y: t.clientY });
+  const pts = ptsArray();
+  if (pts.length === 1) {
+    touchState.mode = 'tap';
+    touchState.startX = pts[0].x; touchState.startY = pts[0].y;
+    touchState.lastX = pts[0].x; touchState.lastY = pts[0].y;
+    touchState.startTime = Date.now();
+    hoverCell = clientToCell(pts[0].x, pts[0].y);
+  } else if (pts.length === 2) {
+    touchState.mode = 'pinch';
+    const [a, b] = pts;
+    touchState.startDist = Math.max(1, Math.hypot(a.x - b.x, a.y - b.y));
+    touchState.startZoom = cam.zoom;
+    const cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
+    const rect = canvas.getBoundingClientRect();
+    const mx = (cx - rect.left) * (cssW / rect.width);
+    const my = (cy - rect.top)  * (cssH / rect.height);
+    touchState.anchorWX = (mx - cam.px) / cam.zoom;
+    touchState.anchorWY = (my - cam.py) / cam.zoom;
+    hoverCell = -1;
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  lastTouchTime = Date.now();
+  for (const t of e.changedTouches)
+    if (touchPts.has(t.identifier))
+      touchPts.set(t.identifier, { x: t.clientX, y: t.clientY });
+  const pts = ptsArray();
+  const rect = canvas.getBoundingClientRect();
+  const sx = cssW / rect.width, sy = cssH / rect.height;
+  if (pts.length >= 2 && touchState.mode === 'pinch') {
+    const [a, b] = pts;
+    const dist = Math.max(1, Math.hypot(a.x - b.x, a.y - b.y));
+    const ratio = dist / touchState.startDist;
+    const nz = clamp(touchState.startZoom * ratio, minZoom, maxZoom);
+    const cx = (a.x + b.x) / 2, cy = (a.y + b.y) / 2;
+    const mx = (cx - rect.left) * sx, my = (cy - rect.top) * sy;
+    cam.zoom = nz;
+    cam.px = mx - touchState.anchorWX * nz;
+    cam.py = my - touchState.anchorWY * nz;
+    updateZoomBadge();
+    return;
+  }
+  if (pts.length === 1) {
+    const t = pts[0];
+    const totalMove = Math.hypot(t.x - touchState.startX, t.y - touchState.startY);
+    if (touchState.mode === 'tap' && totalMove > 8) touchState.mode = 'pan';
+    if (touchState.mode === 'pan') {
+      const dx = t.x - touchState.lastX, dy = t.y - touchState.lastY;
+      cam.px += dx * sx; cam.py += dy * sy;
+      hoverCell = -1;
+    }
+    touchState.lastX = t.x; touchState.lastY = t.y;
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchend', e => {
+  e.preventDefault();
+  lastTouchTime = Date.now();
+  for (const t of e.changedTouches) touchPts.delete(t.identifier);
+  const pts = ptsArray();
+  if (pts.length === 1) {
+    touchState.mode = 'pan';
+    touchState.lastX = pts[0].x; touchState.lastY = pts[0].y;
+    touchState.startX = pts[0].x; touchState.startY = pts[0].y;
+  } else if (pts.length === 0) {
+    if (touchState.mode === 'tap' && Date.now() - touchState.startTime < 500) {
+      handleClick(touchState.startX, touchState.startY);
+    }
+    touchState.mode = null;
+    hoverCell = -1;
+  }
+}, { passive: false });
+
+canvas.addEventListener('touchcancel', e => {
+  e.preventDefault();
+  touchPts.clear(); touchState.mode = null; hoverCell = -1;
+}, { passive: false });
+
+function handleClick(clientX, clientY) {
+  /* ★ 0. 回放模式：只允许查看 */
+  if (replayMode) {
+    const ri = clientToCell(clientX, clientY);
+    if (ri >= 0) { selected = ri; selectedUnit = null; moveMode = false; updateInfoPanel(); }
+    return;
+  }
+
+  /* ★ 1. 改道模式优先 */
+  if (rerouteMode && selectedUnit) {
+    const i = clientToCell(clientX, clientY);
+    if (i < 0) { rerouteMode = false; updateInfoPanel(); return; }
+    const startIdx = selectedUnit.path[selectedUnit.seg - 1];
+    if (i === startIdx) { rerouteMode = false; updateInfoPanel(); return; }
+    const ok = rerouteUnit(selectedUnit, i);
+    if (ok) log(`🎯 部队改道 → (${xOf(i)},${yOf(i)})`, 'info');
+    else log('❌ 无法重新规划路径', 'warn');
+    rerouteMode = false;
+    updateInfoPanel();
+    return;
+  }
+
+  /* ★ 2. 点到己方移动部队？选中它 */
+  if (!spectatorMode) {
+    const hitUnit = findUnitAt(clientX, clientY);
+    if (hitUnit) {
+      selectedUnit = hitUnit;
+      selected = null;
+      moveMode = false;
+      placing = null;
+      rerouteMode = false;
+      dispatchAmount = null;
+      refreshShop();
+      updateInfoPanel();
+      return;
+    }
+  }
+
+  const i = clientToCell(clientX, clientY);
+  if (i < 0) return;
+
+  if (spectatorMode) {
+    selected = i; selectedUnit = null; moveMode = false; placing = null;
+    updateInfoPanel();
+    return;
+  }
+
+  if (placing) {
+    const d = BUILD_DEFS[placing];
+    const ox = xOf(i) - Math.floor((d.w - 1) / 2);
+    const oy = yOf(i) - Math.floor((d.h - 1) / 2);
+    if (doAction(playerFaction, { type: 'build', building: placing, x: ox, y: oy })) {
+      log(`🔨 建造了 ${d.name}`, 'info');
+      placing = null; refreshShop();
+    } else {
+      if (money[playerFaction] < d.cost) log('💰 资金不足', 'warn');
+      else log('❌ 无法在此处建造', 'warn');
+    }
+    updateSidebar(); return;
+  }
+  if (moveMode && selected !== null) {
+    if (i === selected) { moveMode = false; updateInfoPanel(); return; }
+    const tr = troops[selected];
+    if (tr <= 0) { log('该格没有兵力', 'warn'); moveMode = false; updateInfoPanel(); return; }
+    const maxD = maxDispatchOf(selected);
+    let sendD = dispatchAmount === null ? maxD : dispatchAmount;
+    sendD = clamp(Math.round(sendD / 100) * 100, 100, maxD);
+    if (sendD < 100 || maxD < 100) {
+      log('⚠️ 兵力不足 100', 'warn');
+      moveMode = false; updateInfoPanel(); return;
+    }
+    if (doAction(playerFaction, { type: 'dispatch', from: selected, to: i, amount: sendD })) {
+      log(`🚀 从 (${xOf(selected)},${yOf(selected)}) 派出 ${sendD} 兵 → (${xOf(i)},${yOf(i)})`, 'info');
+      dispatchAmount = null;
+    } else log('❌ 无法到达目标', 'warn');
+    moveMode = false; updateInfoPanel(); return;
+  }
+  if (selected !== i) dispatchAmount = null;
+  selected = i;
+  selectedUnit = null;
+  moveMode = false;
+  updateInfoPanel();
+}
+
+/* =========================================================
+   商店
+   ========================================================= */
+const shopEl = document.getElementById('shop');
+function buildShop() {
+  shopEl.innerHTML = '';
+  const mkRecruit = (n, cls) => {
+    const b = document.createElement('button');
+    b.className = cls;
+    b.innerHTML = `🪖 招募 ${n} 兵<br><span style="font-size:10.5px;color:#94a3b8">${Math.ceil(n/100)*TROOP_PRICE} 💰</span>`;
+    b.onclick = () => {
+      if (spectatorMode || replayMode) return;
+      const ok = doAction(playerFaction, { type: 'recruit', amount: n });
+      if (ok) log(`🪖 招募了 ${n} 兵`, 'info');
+      else log('资金不足或没有空余容量', 'warn');
+      updateSidebar(); if (selected !== null) updateInfoPanel();
+    };
+    shopEl.appendChild(b);
+  };
+  mkRecruit(100, 'big');
+  mkRecruit(500, 'big');
+  for (const k in BUILD_DEFS) {
+    const d = BUILD_DEFS[k];
+    const b = document.createElement('button');
+    b.dataset.key = k;
+    b.innerHTML = `${d.icon} ${d.name}<br><span style="font-size:10.5px;color:#94a3b8">${d.cost} 💰</span>`;
+    b.onclick = () => {
+      if (spectatorMode || replayMode) return;
+      placing = (placing === k) ? null : k;
+      moveMode = false;
+      refreshShop(); updateInfoPanel();
+    };
+    shopEl.appendChild(b);
+  }
+}
+function refreshShop() {
+  for (const b of shopEl.querySelectorAll('button[data-key]'))
+    b.classList.toggle('active', b.dataset.key === placing);
+}
+
+/* =========================================================
+   存档
+   ========================================================= */
+function serializeGame() {
+  let ts = '', os = '';
+  for (let i = 0; i < N; i++) { ts += terrain[i]; os += owner[i]; }
+  const ta = new Array(N);
+  for (let i = 0; i < N; i++) ta[i] = troops[i];
+  const bList = buildings.map(b => ({ id: b.id, t: b.type, o: b.owner, lv: b.level, x: b.x, y: b.y }));
+  const uList = units.map(u => ({ o: u.owner, n: u.troops, p: u.path, s: u.seg, g: +u.prog.toFixed(3) }));
+  return JSON.stringify({
+    tag: SAVE_TAG, v: SAVE_VERSION, ts: Date.now(),
+    w: W, h: H, preset: mapPreset, difficulty: aiDifficulty,
+    player: playerFaction, spectator: spectatorMode,
+    tick: tickCount, tickAcc: +tickAcc.toFixed(1),
+    money: money.slice(), nextBId, paused, gameOver,
+    aiTimers: aiTimers.slice(),
+    terrain: ts, owner: os, troops: ta.join(','),
+    buildings: bList, units: uList,
+    learnEnabled: aiLearningEnabled,
+  });
+}
+
+function deserializeGame(text) {
+  let data;
+  try { data = JSON.parse(text); }
+  catch (e) { throw new Error('文件不是合法的 JSON 数据'); }
+  if (!data || (data.tag !== SAVE_TAG && data.tag !== 'conquest-v4')) throw new Error('存档格式不匹配');
+  const w = data.w | 0, h = data.h | 0;
+  if (!w || !h || w < 5 || h < 5 || w > 500 || h > 500) throw new Error('地图尺寸无效');
+  if (w !== W || h !== H) { allocBuffers(w, h); fitCanvas(); fitView(); }
+  if (typeof data.terrain !== 'string' || data.terrain.length !== N) throw new Error('地形数据错误');
+  if (typeof data.owner !== 'string' || data.owner.length !== N) throw new Error('归属数据错误');
+  const tArr = data.troops.split(',');
+  if (tArr.length !== N) throw new Error('兵力数据错误');
+  for (let i = 0; i < N; i++) {
+    terrain[i] = (+data.terrain[i]) | 0;
+    owner[i] = (+data.owner[i]) | 0;
+    if (owner[i] < 0 || owner[i] > 4) owner[i] = 0;
+    troops[i] = (+tArr[i]) || 0;
+  }
+  buildings = []; bMap.clear(); bIdAt.fill(-1);
+  if (Array.isArray(data.buildings)) {
+    for (const bd of data.buildings) {
+      const def = BUILD_DEFS[bd.t]; if (!def) continue;
+      const b = { id: bd.id, type: bd.t, owner: bd.o, level: clamp(bd.lv | 0, 1, 5), x: bd.x | 0, y: bd.y | 0, cells: [] };
+      let ok = true;
+      for (let dy = 0; dy < def.h; dy++)
+        for (let dx = 0; dx < def.w; dx++) {
+          const nx = b.x + dx, ny = b.y + dy;
+          if (nx < 0 || nx >= W || ny < 0 || ny >= H) { ok = false; break; }
+          const ci = idxOf(nx, ny);
+          if (bIdAt[ci] >= 0) { ok = false; break; }
+          bIdAt[ci] = b.id; b.cells.push(ci);
+        }
+      if (!ok) { for (const c of b.cells) bIdAt[c] = -1; continue; }
+      buildings.push(b); bMap.set(b.id, b);
+    }
+  }
+  units = [];
+  if (Array.isArray(data.units)) {
+    for (const u of data.units) {
+      if (!Array.isArray(u.p) || u.p.length < 2) continue;
+      const path = u.p.map(v => v | 0);
+      let seg = clamp(u.s | 0, 1, path.length - 1);
+      const unit = { owner: clamp(u.o | 0, 1, 4), troops: u.n | 0, path, seg, prog: clamp(+u.g || 0, 0, 0.999), dead: false, px: 0, py: 0 };
+      if (unit.troops <= 0) continue;
+      const a = path[seg - 1], b2 = path[seg];
+      unit.px = xOf(a) + (xOf(b2) - xOf(a)) * unit.prog;
+      unit.py = yOf(a) + (yOf(b2) - yOf(a)) * unit.prog;
+      units.push(unit);
+    }
+  }
+  if (Array.isArray(data.money) && data.money.length >= 5) money = data.money.map(v => +v || 0).slice(0, 5);
+  nextBId = (data.nextBId | 0) || (buildings.reduce((m, b) => Math.max(m, b.id), -1) + 1);
+  tickCount = data.tick | 0;
+  tickAcc = +data.tickAcc || 0;
+  aiTimers = Array.isArray(data.aiTimers) && data.aiTimers.length === 5 ? data.aiTimers.map(v => v | 0) : [0,0,0,0,0];
+  paused = !!data.paused;
+  gameOver = !!data.gameOver;
+  if (data.preset && MAP_PRESETS[data.preset]) mapPreset = data.preset;
+  if (data.difficulty && DIFF_CFG[data.difficulty]) aiDifficulty = data.difficulty;
+  if (typeof data.player === 'number' && data.player >= 1 && data.player <= 4) playerFaction = data.player;
+  if (typeof data.learnEnabled === 'boolean') aiLearningEnabled = data.learnEnabled;
+  spectatorMode = !!data.spectator;
+  resourceCells.length = 0;
+  for (let i = 0; i < N; i++) {
+    const t = terrain[i];
+    if (t === T_LOW || t === T_MID || t === T_HIGH) resourceCells.push(i);
+  }
+  selected = null; selectedUnit = null; rerouteMode = false;
+  moveMode = false; placing = null;
+  dispatchAmount = null; hoverCell = -1;
+  markDirty();
+}
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+function exportSave() {
+  try {
+    const text = serializeGame();
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const now = new Date();
+    const modeTag = spectatorMode ? '观战' : COLOR_NAMES[playerFaction];
+    const fname = `征服世界_${MAP_NAME[mapPreset]}_${modeTag}_${now.getFullYear()}${pad2(now.getMonth()+1)}${pad2(now.getDate())}_${pad2(now.getHours())}${pad2(now.getMinutes())}${pad2(now.getSeconds())}.txt`;
+    const a = document.createElement('a');
+    a.href = url; a.download = fname;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    log(`📤 已导出存档：${fname}`, 'good');
+  } catch (err) { log(`❌ 导出失败：${err.message}`, 'warn'); }
+}
+
+function importSaveFromFile(file) {
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      deserializeGame(ev.target.result);
+      document.getElementById('setup-overlay').style.display = 'none';
+      gameStarted = true;
+      updateBadges(); updateSidebar(); updateInfoPanel(); refreshShop(); updateAIPanel();
+      const ov = document.getElementById('overlay');
+      ov.style.display = gameOver ? 'flex' : 'none';
+      const pb = document.getElementById('btn-pause');
+      pb.textContent = paused ? '▶ 继续' : '⏸ 暂停';
+      pb.classList.toggle('primary', !paused);
+      log(`📥 已导入存档：${file.name}`, 'good');
+      if (spectatorMode) log('🍿 观战模式', 'info');
+    } catch (err) { alert('存档导入失败：\n' + err.message); }
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+/* =========================================================
+   侧边栏
+   ========================================================= */
+function updateBadges() {
+  const db = document.getElementById('diffBadge');
+  db.className = 'diff-badge ' + aiDifficulty;
+  document.getElementById('diffBadgeName').textContent = DIFF_NAME[aiDifficulty];
+  document.getElementById('mapBadgeName').textContent = MAP_NAME[mapPreset];
+  const cb = document.getElementById('colorBadge');
+  cb.style.color = FACTION_COLOR[playerFaction];
+  document.getElementById('colorBadgeName').textContent =
+    replayMode ? `📺 视角 ${COLOR_NAMES[playerFaction]}` :
+    spectatorMode ? `🍿 ${COLOR_NAMES[playerFaction]}` : COLOR_NAMES[playerFaction];
+  document.getElementById('aiPluginName').textContent = currentAIPluginName;
+  document.getElementById('learnStatus').textContent = aiLearningEnabled ? '已开启' : '已关闭';
+}
+
+function updateSidebar() {
+  let myTroops = 0, myLand = 0;
+  for (let i = 0; i < N; i++)
+    if (owner[i] === playerFaction) { myLand++; myTroops += troops[i]; }
+  for (const u of units) if (u.owner === playerFaction) myTroops += u.troops;
+  document.getElementById('s-money').textContent = Math.floor(money[playerFaction]);
+  document.getElementById('s-troop').textContent = myTroops;
+  document.getElementById('s-land').textContent = myLand;
+  document.getElementById('s-tick').textContent = tickCount;
+}
+
+/* 原 updateInfoPanel 逻辑（内层） */
+function _updateInfoPanelInner() {
+  const box = document.getElementById('cellInfo');
+  const coordEl = document.getElementById('cellCoord');
+
+  if (selectedUnit) {
+    coordEl.textContent = ' 🪖';
+    const u = selectedUnit;
+    const curX = u.px.toFixed(1), curY = u.py.toFixed(1);
+    const targetIdx = u.path[u.path.length - 1];
+    const tx = xOf(targetIdx), ty = yOf(targetIdx);
+    const remaining = u.path.length - u.seg + (1 - u.prog);
+    const color = FACTION_COLOR[u.owner];
+    let html = '';
+    html += `<div class="info-line"><span class="lbl">类型</span><span class="val"><span class="tag" style="background:${color}22;color:${color}">🪖 行进部队</span></span></div>`;
+    html += `<div class="info-line"><span class="lbl">兵力</span><span class="val">${u.troops}</span></div>`;
+    html += `<div class="info-line"><span class="lbl">当前位置</span><span class="val">(${curX}, ${curY})</span></div>`;
+    html += `<div class="info-line"><span class="lbl">当前目标</span><span class="val">(${tx}, ${ty})</span></div>`;
+    html += `<div class="info-line"><span class="lbl">剩余路程</span><span class="val">约 ${remaining.toFixed(1)} 格</span></div>`;
+    html += '<div class="row" style="margin-top:10px">';
+    if (replayMode) {
+      html += `<div class="hint" style="width:100%">📺 回放中 · 只读</div>`;
+    } else {
+      if (rerouteMode) {
+        html += `<button id="btn-reroute" class="active" style="flex:1">🎯 改道中…</button>`;
+      } else {
+        html += `<button id="btn-reroute" class="primary" style="flex:1">🎯 改道</button>`;
+      }
+      html += `<button id="btn-deselect-unit" style="flex:1">✖ 取消选中</button>`;
+    }
+    html += '</div>';
+    if (rerouteMode && !replayMode) {
+      html += `<div class="hint" style="margin-top:8px">👆 点击地图任意格子选择新目标<br>（点原位格取消）</div>`;
+    }
+    box.innerHTML = html;
+
+    const br = document.getElementById('btn-reroute');
+    if (br) br.onclick = () => {
+      rerouteMode = !rerouteMode;
+      moveMode = false; placing = null;
+      refreshShop(); updateInfoPanel();
+    };
+    const bd = document.getElementById('btn-deselect-unit');
+    if (bd) bd.onclick = () => {
+      selectedUnit = null; rerouteMode = false;
+      updateInfoPanel();
+    };
+    return;
+  }
+
+  if (selected === null) {
+    coordEl.textContent = '';
+    box.innerHTML = '<div class="hint">点击地图上的格子或己方部队查看详情</div>';
+    return;
+  }
+  const i = selected;
+  coordEl.textContent = ` (${xOf(i)}, ${yOf(i)})`;
+  const t = terrain[i], o = owner[i];
+  const cap = capacity(i), tr = troops[i];
+  const ratio = cap > 0 ? Math.min(1, tr / cap) : 0;
+  const bid = bIdAt[i];
+  const b = bid >= 0 ? bMap.get(bid) : null;
+  const oColor = o === 0 ? '#94a3b8' : FACTION_COLOR[o];
+  const canRecruitHere = (o === playerFaction) && canRecruitAt(i, playerFaction);
+  let html = '';
+  html += `<div class="info-line"><span class="lbl">归属</span><span class="val"><span class="tag" style="background:${oColor}22;color:${oColor}">${getFactionName(o)}</span></span></div>`;
+  html += `<div class="info-line"><span class="lbl">地形</span><span class="val">${T_NAME[t]}${T_INCOME[t] ? ` · +${T_INCOME[t]}💰/tick` : ''}</span></div>`;
+  html += `<div class="info-line"><span class="lbl">兵力</span><span class="val">${tr} / ${cap}</span></div>`;
+  html += `<div class="bar"><i style="width:${(ratio*100).toFixed(1)}%"></i></div>`;
+  if (b) html += `<div class="info-line" style="margin-top:8px"><span class="lbl">建筑</span><span class="val">${BUILD_DEFS[b.type].icon} ${BUILD_DEFS[b.type].name} Lv.${b.level}</span></div>`;
+  const maxD = maxDispatchOf(i);
+  let curD = 0;
+  if (!spectatorMode && !replayMode && o === playerFaction && tr > 0 && maxD >= 100) {
+    curD = dispatchAmount === null ? maxD : dispatchAmount;
+    curD = clamp(Math.round(curD / 100) * 100, 100, maxD);
+    html += `<div style="margin-top:12px;padding-top:10px;border-top:1px dashed #eef2f7">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;font-size:11.5px;color:#64748b;margin-bottom:2px">
+      <span>派兵数量</span>
+      <span><b id="dispatchVal" style="color:#2563eb;font-size:16px">${curD}</b>
+      <span style="color:#cbd5e1;font-size:11px">/ ${tr}</span></span></div>
+      <input type="range" id="dispatchSlider" min="100" max="${maxD}" step="100" value="${curD}">
+      <div style="display:flex;gap:6px;margin-top:2px">
+        <button id="btn-d-half" style="flex:1;font-size:11px;padding:5px">一半</button>
+        <button id="btn-d-all" style="flex:1;font-size:11px;padding:5px">全部</button>
+      </div></div>`;
+  }
+  html += '<div class="row" style="margin-top:10px">';
+  if (replayMode) {
+    html += `<div class="hint" style="width:100%">📺 回放中 · 只读</div>`;
+  } else if (spectatorMode) {
+    html += `<div class="hint" style="width:100%">🍿 观战模式 · 无法操作</div>`;
+  } else if (o === playerFaction) {
+    if (tr > 0) html += `<button id="btn-dispatch" class="${moveMode ? 'active' : ''}" style="flex:1">🚀 派兵</button>`;
+    if (tr < cap && canRecruitHere) html += `<button id="btn-here100" class="primary" style="flex:1">🪖 增援100</button>`;
+    if (b && b.level < 5) {
+      const cost = BUILD_DEFS[b.type].up * b.level;
+      html += `<button id="btn-upgrade" style="flex:1" ${money[playerFaction] < cost ? 'disabled' : ''}>⬆️ 升级 ${cost}💰</button>`;
+    }
+  } else {
+    html += `<div class="hint" style="width:100%">${moveMode ? '👆 点击此格派兵进攻' : '（非己方领地）'}</div>`;
+  }
+  html += '</div>';
+  box.innerHTML = html;
+
+  const bd = document.getElementById('btn-dispatch');
+  if (bd) bd.onclick = () => {
+    moveMode = !moveMode; placing = null;
+    selectedUnit = null; rerouteMode = false;
+    refreshShop(); updateInfoPanel();
+  };
+  const bh = document.getElementById('btn-here100');
+  if (bh) bh.onclick = () => {
+    const ok = doAction(playerFaction, { type: 'recruitCell', cell: selected, amount: 100 });
+    if (ok) log(`🪖 增援 100 兵`, 'info');
+    else log('资金不足或该格已满', 'warn');
+    updateSidebar(); updateInfoPanel();
+  };
+  const bu = document.getElementById('btn-upgrade');
+  if (bu) bu.onclick = () => {
+    if (doAction(playerFaction, { type: 'upgrade', id: bid })) log(`⬆️ 升级了 ${BUILD_DEFS[b.type].name}`, 'info');
+    else log('资金不足', 'warn');
+    updateSidebar(); updateInfoPanel();
+  };
+  const slider = document.getElementById('dispatchSlider');
+  if (slider) {
+    slider.addEventListener('pointerdown', () => { sliderActive = true; });
+    slider.addEventListener('pointerup', () => { sliderActive = false; });
+    slider.addEventListener('pointercancel', () => { sliderActive = false; });
+    slider.addEventListener('input', () => {
+      const v = parseInt(slider.value, 10);
+      dispatchAmount = v;
+      const el = document.getElementById('dispatchVal');
+      if (el) el.textContent = v;
+    });
+  }
+  const bHalf = document.getElementById('btn-d-half');
+  if (bHalf) bHalf.onclick = () => {
+    const m = maxDispatchOf(selected);
+    dispatchAmount = Math.max(100, Math.floor(m / 2 / 100) * 100);
+    updateInfoPanel();
+  };
+  const bAll = document.getElementById('btn-d-all');
+  if (bAll) bAll.onclick = () => {
+    dispatchAmount = maxDispatchOf(selected);
+    updateInfoPanel();
+  };
+}
+
+/* 新 updateInfoPanel：包装 + 同步悬浮窗 */
+function updateInfoPanel() {
+  try { _updateInfoPanelInner(); } finally { updateCellFloat(); }
+}
+
+/* ★ 刷新地图右上角的悬浮格子窗 */
+function updateCellFloat() {
+  const el = document.getElementById('cellFloat');
+  if (!el) return;
+
+  /* ---- 部队视图 ---- */
+  if (selectedUnit) {
+    const u = selectedUnit;
+    if (!units.includes(u)) { selectedUnit = null; rerouteMode = false; }
+    else {
+      el.classList.remove('empty');
+      const color = FACTION_COLOR[u.owner];
+      const targetIdx = u.path[u.path.length - 1];
+      const coordEl = document.getElementById('cfCoord');
+      const ownerEl = document.getElementById('cfOwner');
+      const bRow = document.getElementById('cfBuildingRow');
+      const bEl = document.getElementById('cfBuilding');
+      const tvEl = document.getElementById('cfTroopVal');
+      const tcEl = document.getElementById('cfTroopCap');
+      const barEl = document.getElementById('cfBar');
+      const actEl = document.getElementById('cfActions');
+      if (coordEl) coordEl.textContent = '(' + u.px.toFixed(1) + ', ' + u.py.toFixed(1) + ')';
+      if (ownerEl) {
+        ownerEl.textContent = COLOR_EMOJI[u.owner] + ' ' + COLOR_NAMES[u.owner];
+        ownerEl.style.background = color + '22';
+        ownerEl.style.color = color;
+      }
+      if (bRow) bRow.style.display = 'flex';
+      if (bEl) bEl.textContent = '🪖 行进部队';
+      if (tvEl) tvEl.textContent = String(u.troops);
+      if (tcEl) tcEl.textContent = '→ (' + xOf(targetIdx) + ',' + yOf(targetIdx) + ')';
+      if (barEl) barEl.style.width = '100%';
+      if (actEl) {
+        if (replayMode || spectatorMode) {
+          actEl.innerHTML = '<div class="cf-hint">' + (replayMode ? '回放中 · 只读' : '观战模式') + '</div>';
+        } else {
+          actEl.innerHTML =
+            '<button class="cf-btn ' + (rerouteMode ? 'active' : 'primary') + '" id="cfBtnReroute">🎯 改道</button>' +
+            '<button class="cf-btn" id="cfBtnDeselectU">✖</button>';
+          const br = document.getElementById('cfBtnReroute');
+          if (br) br.onclick = () => {
+            rerouteMode = !rerouteMode;
+            moveMode = false; placing = null;
+            refreshShop(); updateInfoPanel();
+          };
+          const bd = document.getElementById('cfBtnDeselectU');
+          if (bd) bd.onclick = () => { selectedUnit = null; rerouteMode = false; updateInfoPanel(); };
+        }
+      }
+      return;
+    }
+  }
+
+  if (selected === null) { el.classList.add('empty'); return; }
+
+  el.classList.remove('empty');
+  const i = selected;
+  const t = terrain[i], o = owner[i];
+  const cap = capacity(i), tr = troops[i];
+  const ratio = cap > 0 ? Math.min(1, tr / cap) : 0;
+  const bid = bIdAt[i];
+  const b = bid >= 0 ? bMap.get(bid) : null;
+  const oColor = o === 0 ? '#94a3b8' : FACTION_COLOR[o];
+
+  const coordEl = document.getElementById('cfCoord');
+  const ownerEl = document.getElementById('cfOwner');
+  const bRow = document.getElementById('cfBuildingRow');
+  const bEl = document.getElementById('cfBuilding');
+  const tvEl = document.getElementById('cfTroopVal');
+  const tcEl = document.getElementById('cfTroopCap');
+  const barEl = document.getElementById('cfBar');
+  const actEl = document.getElementById('cfActions');
+
+  if (coordEl) coordEl.textContent = '(' + xOf(i) + ', ' + yOf(i) + ')';
+  if (ownerEl) {
+    ownerEl.textContent = (o === 0 ? '' : COLOR_EMOJI[o] + ' ') + getFactionName(o);
+    ownerEl.style.background = oColor + '22';
+    ownerEl.style.color = oColor;
+  }
+  if (bRow) {
+    if (b) {
+      bRow.style.display = 'flex';
+      if (bEl) bEl.textContent = BUILD_DEFS[b.type].icon + ' ' + BUILD_DEFS[b.type].name + ' Lv.' + b.level;
+    } else { bRow.style.display = 'none'; }
+  }
+  if (tvEl) tvEl.textContent = String(tr);
+  if (tcEl) tcEl.textContent = '/ ' + cap;
+  if (barEl) barEl.style.width = (ratio * 100).toFixed(1) + '%';
+
+  if (actEl) {
+    if (replayMode) {
+      actEl.innerHTML = '<div class="cf-hint">📺 回放中 · 只读</div>';
+    } else if (spectatorMode) {
+      actEl.innerHTML = '<div class="cf-hint">🍿 观战模式</div>';
+    } else if (o === playerFaction) {
+      let html = '';
+      const maxD = maxDispatchOf(i);
+      if (tr > 0 && maxD >= 100) {
+        html += '<button class="cf-btn ' + (moveMode ? 'active' : 'primary') + '" id="cfBtnDispatch">🚀 派兵</button>';
+      }
+      const canR = canRecruitAt(i, playerFaction);
+      if (tr < cap && canR) {
+        html += '<button class="cf-btn" id="cfBtnReinforce">🪖 +100</button>';
+      }
+      if (!html) html = '<div class="cf-hint">无可用操作</div>';
+      actEl.innerHTML = html;
+      const bd = document.getElementById('cfBtnDispatch');
+      if (bd) bd.onclick = () => {
+        moveMode = !moveMode; placing = null;
+        selectedUnit = null; rerouteMode = false;
+        refreshShop(); updateInfoPanel();
+      };
+      const br = document.getElementById('cfBtnReinforce');
+      if (br) br.onclick = () => {
+        const ok = doAction(playerFaction, { type: 'recruitCell', cell: i, amount: 100 });
+        if (ok) log('🪖 增援 100 兵', 'info');
+        else log('资金不足或该格已满', 'warn');
+        updateSidebar(); updateInfoPanel();
+      };
+    } else {
+      actEl.innerHTML = '<div class="cf-hint">非己方领地</div>';
+    }
+  }
+}
+
+function updateAIPanel() {
+  const el = document.getElementById('aiPanel');
+  if (!el || !aiMemory) return;
+  let html = '';
+  for (const f of aiFactionList()) {
+    const mem = getAIFaction(f);
+    if (!mem) continue;
+    const winRate = mem.games > 0 ? (mem.wins / mem.games * 100).toFixed(0) : '—';
+    const recent = mem.recentAttacks;
+    const recentRate = recent.length >= 4
+      ? (recent.filter(r => r.success).length / recent.length * 100).toFixed(0) + '%'
+      : '—';
+    html += `<div class="ai-row">
+      <span class="ai-name" style="color:${FACTION_COLOR[f]}">● ${COLOR_NAMES[f]}${spectatorMode && f === playerFaction ? ' (焦点)' : ''}</span>
+      <span class="ai-val">侵 ${mem.params.aggression.toFixed(2)} · 胜率 ${winRate}% · 近期 ${recentRate}</span>
+    </div>`;
+    html += `<div style="font-size:10.5px;color:#94a3b8;padding:2px 0 6px 14px">
+      buffer ${mem.params.buffer.toFixed(0)} · 留守 ${(mem.params.keepBackRatio*100).toFixed(0)}% · 兵力投资 ${(mem.params.moneyUse*100).toFixed(0)}% · ${mem.params.maxAttacks} 路
+    </div>`;
+  }
+  const focusLabel = spectatorMode ? '焦点' : '你';
+  html += `<div style="margin-top:6px;padding-top:6px;border-top:1px dashed #eef2f7;font-size:11px;color:#64748b">
+    ${focusLabel}：<b style="color:${FACTION_COLOR[playerFaction]}">${COLOR_NAMES[playerFaction]}</b> · 陪练难度：<b>${DIFF_NAME[aiDifficulty]}</b> · 进化代数：<b>${aiMemory.evolution}</b> · 累计训练：<b>${aiMemory.totalGames}</b> 局
+  </div>`;
+  el.innerHTML = html;
+}
+
+/* =========================================================
+   Replay 录制与回放
+   ========================================================= */
+function captureInitialState() {
+  let ts = '', os = '';
+  for (let i = 0; i < N; i++) { ts += terrain[i]; os += owner[i]; }
+  const ta = new Array(N);
+  for (let i = 0; i < N; i++) ta[i] = troops[i];
+  const bList = [];
+  for (const b of buildings) bList.push({ id: b.id, t: b.type, o: b.owner, lv: b.level, x: b.x, y: b.y });
+  const uList = [];
+  for (const u of units) uList.push({ o: u.owner, n: u.troops, p: u.path.slice(), s: u.seg, g: +u.prog.toFixed(3) });
+  return {
+    w: W, h: H,
+    terrain: ts, owner: os, troops: ta,
+    buildings: bList, units: uList,
+    money: money.slice(), nextBId: nextBId,
+  };
+}
+
+function startRecording() {
+  if (recorder) return;
+  recorder = {
+    v: 1,
+    meta: {
+      created: Date.now(),
+      mapPreset: mapPreset,
+      difficulty: aiDifficulty,
+      playerFaction: playerFaction,
+      spectator: spectatorMode,
+      startTick: tickCount,
+    },
+    init: captureInitialState(),
+    events: [],
+    endTick: null,
+    winner: null,
+  };
+  log('🔴 开始录制回放', 'good');
+  updateReplayPanel();
+}
+
+function stopRecording() {
+  if (!recorder) return null;
+  recorder.endTick = tickCount;
+  recorder.meta.winner = determineWinner();
+  recorder.meta.endTime = Date.now();
+  const data = recorder;
+  recorder = null;
+  lastRecording = data;
+  log('⏹ 录制结束：' + data.events.length + ' 个事件 · ' + tickCount + ' tick', 'good');
+  updateReplayPanel();
+  return data;
+}
+
+function exportReplay() {
+  const data = lastRecording || (recorder ? stopRecording() : null);
+  if (!data) { alert('没有可导出的回放'); return; }
+  try {
+    const text = JSON.stringify(data);
+    const blob = new Blob([text], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const now = new Date();
+    const fname = 'replay_' + now.getFullYear() + pad2(now.getMonth()+1) + pad2(now.getDate()) + '_' + pad2(now.getHours()) + pad2(now.getMinutes()) + pad2(now.getSeconds()) + '.json';
+    const a = document.createElement('a');
+    a.href = url; a.download = fname;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    log('💾 已导出回放：' + fname, 'good');
+  } catch (e) { log('❌ 导出失败：' + e.message, 'warn'); }
+}
+
+function applyReplayInit() {
+  if (!replayData) return;
+  const ini = replayData.init;
+  const w = ini.w | 0, h = ini.h | 0;
+  allocBuffers(w, h);
+  for (let i = 0; i < N; i++) {
+    terrain[i] = (+ini.terrain.charAt(i)) | 0;
+    owner[i]   = (+ini.owner.charAt(i))   | 0;
+    troops[i]  = (ini.troops[i] | 0) || 0;
+  }
+  buildings = []; bMap.clear(); bIdAt.fill(-1);
+  if (Array.isArray(ini.buildings)) {
+    for (const bd of ini.buildings) {
+      const def = BUILD_DEFS[bd.t]; if (!def) continue;
+      const b = { id: bd.id, type: bd.t, owner: bd.o, level: clamp(bd.lv | 0, 1, 5), x: bd.x | 0, y: bd.y | 0, cells: [] };
+      let ok = true;
+      for (let dy = 0; dy < def.h; dy++)
+        for (let dx = 0; dx < def.w; dx++) {
+          const nx = b.x + dx, ny = b.y + dy;
+          if (nx < 0 || nx >= W || ny < 0 || ny >= H) { ok = false; break; }
+          const ci = idxOf(nx, ny);
+          if (bIdAt[ci] >= 0) { ok = false; break; }
+          bIdAt[ci] = b.id; b.cells.push(ci);
+        }
+      if (!ok) { for (const c of b.cells) bIdAt[c] = -1; continue; }
+      buildings.push(b); bMap.set(b.id, b);
+    }
+  }
+  money = (ini.money || [0,2000,2000,2000,2000]).slice();
+  nextBId = ini.nextBId || (buildings.reduce((m, b) => Math.max(m, b.id), -1) + 1);
+  units = [];
+  if (Array.isArray(ini.units)) {
+    for (const u of ini.units) {
+      if (!Array.isArray(u.p) || u.p.length < 2) continue;
+      const path = u.p.slice();
+      const seg = clamp(u.s | 0, 1, path.length - 1);
+      const unit = { owner: clamp(u.o | 0, 1, 4), troops: u.n | 0, path, seg, prog: clamp(+u.g || 0, 0, 0.999), dead: false, px: 0, py: 0 };
+      if (unit.troops <= 0) continue;
+      const a = path[seg - 1], b2 = path[seg];
+      unit.px = xOf(a) + (xOf(b2) - xOf(a)) * unit.prog;
+      unit.py = yOf(a) + (yOf(b2) - yOf(a)) * unit.prog;
+      units.push(unit);
+    }
+  }
+  tickCount = replayData.meta.startTick | 0;
+  tickAcc = 0; replayAcc = 0;
+  aiTimers = [0,0,0,0,0];
+  gameOver = false; paused = false;
+  replayPos = 0;
+  resourceCells = [];
+  for (let i = 0; i < N; i++) {
+    const t = terrain[i];
+    if (t === T_LOW || t === T_MID || t === T_HIGH) resourceCells.push(i);
+  }
+  selected = null; selectedUnit = null; rerouteMode = false;
+  moveMode = false; placing = null; dispatchAmount = null; hoverCell = -1;
+}
+
+function loadReplay(data) {
+  if (!data || data.v !== 1 || !data.init || !Array.isArray(data.events)) {
+    throw new Error('回放数据格式不正确');
+  }
+  if (!replayMode) replayBackup = snapshotGame();
+  replayData = data;
+  replayMode = true;
+  replayPlaying = false;
+  playerFaction = (data.meta && data.meta.playerFaction) || 1;
+  spectatorMode = true;
+  applyReplayInit();
+  fitCanvas(); fitView();
+  markDirty(); refreshMapPixels();
+  updateBadges(); updateSidebar(); updateInfoPanel();
+  updateReplayBar();
+  const bar = document.getElementById('replayBar');
+  if (bar) bar.style.display = 'flex';
+  log('📺 进入回放 · ' + data.events.length + ' 事件 · 视角 ' + COLOR_NAMES[playerFaction], 'good');
+}
+
+function exitReplay() {
+  if (!replayMode) return;
+  replayMode = false; replayPlaying = false;
+  replayData = null; replayPos = 0; replayAcc = 0;
+  if (replayBackup) {
+    const bak = replayBackup; replayBackup = null;
+    restoreGame(bak);
+  }
+  const bar = document.getElementById('replayBar');
+  if (bar) bar.style.display = 'none';
+  updateBadges(); updateSidebar(); updateInfoPanel();
+  updateReplayPanel();
+  log('📺 已退出回放', 'info');
+}
+
+function replayAdvanceOneTick() {
+  if (!replayData) return false;
+  while (replayPos < replayData.events.length && replayData.events[replayPos].t === tickCount) {
+    const ev = replayData.events[replayPos];
+    try { executeAIAction(ev.f, ev.a); } catch (e) { /* 忽略 */ }
+    replayPos++;
+  }
+  if (replayData.endTick !== null && tickCount >= replayData.endTick) return false;
+  doTick(true);
+  return true;
+}
+
+function replaySeekTo(targetTick) {
+  if (!replayMode || !replayData) return;
+  const startTick = replayData.meta.startTick || 0;
+  const endTick = replayData.endTick || 0;
+  targetTick = clamp(targetTick | 0, startTick, endTick);
+  if (targetTick < tickCount) applyReplayInit();
+  let guard = 0;
+  while (tickCount < targetTick && guard++ < 8000) {
+    if (!replayAdvanceOneTick()) break;
+  }
+  updateUnits(TICK_MS / 1000);
+  markDirty();
+  updateReplayBar();
+  updateSidebar();
+}
+
+function setReplayView(f) {
+  if (!replayMode) return;
+  playerFaction = clamp(f | 0, 1, 4);
+  updateBadges(); updateSidebar(); updateReplayBar(); markDirty();
+}
+
+function buildReplayViews() {
+  const el = document.getElementById('rpViews');
+  if (!el) return;
+  let html = '';
+  for (let f = 1; f <= 4; f++) {
+    html += '<button class="rp-view" data-f="' + f + '" title="' + COLOR_NAMES[f] +
+            '" style="color:' + FACTION_COLOR[f] + '">' + COLOR_EMOJI[f] + '</button>';
+  }
+  el.innerHTML = html;
+  el.querySelectorAll('.rp-view').forEach(btn => {
+    btn.onclick = () => setReplayView(parseInt(btn.dataset.f, 10));
+  });
+}
+
+function updateReplayBar() {
+  if (!replayMode || !replayData) return;
+  const startTick = replayData.meta.startTick || 0;
+  const endTick = replayData.endTick || 0;
+  const total = Math.max(1, endTick - startTick);
+  const cur = clamp(tickCount - startTick, 0, total);
+  const tickEl = document.getElementById('rpTick');
+  const seekEl = document.getElementById('rpSeek');
+  const playEl = document.getElementById('rpPlay');
+  const stepEl = document.getElementById('rpStep');
+  if (tickEl) tickEl.textContent = cur + ' / ' + total;
+  if (seekEl) { seekEl.max = String(total); seekEl.value = String(cur); }
+  if (playEl) {
+    playEl.textContent = replayPlaying ? '⏸' : '▶';
+    playEl.classList.toggle('active', replayPlaying);
+  }
+  if (stepEl) stepEl.disabled = tickCount >= endTick;
+  const viewsEl = document.getElementById('rpViews');
+  if (viewsEl) {
+    viewsEl.querySelectorAll('.rp-view').forEach(btn => {
+      btn.classList.toggle('active', parseInt(btn.dataset.f, 10) === playerFaction);
+    });
+  }
+}
+
+function updateReplayPanel() {
+  const hint = document.getElementById('replayHint');
+  const recBtn = document.getElementById('btn-rec');
+  const expBtn = document.getElementById('btn-replay-export');
+  if (!hint || !recBtn) return;
+  if (recorder) {
+    recBtn.textContent = '⏹ 停止录制';
+    recBtn.classList.remove('orange'); recBtn.classList.add('pink');
+    hint.innerHTML = '🔴 正在录制 · <b>' + recorder.events.length + '</b> 事件 · ' + tickCount + ' tick';
+  } else {
+    recBtn.textContent = '🔴 开始录制';
+    recBtn.classList.remove('pink'); recBtn.classList.add('orange');
+    hint.innerHTML = lastRecording
+      ? '上次录制：<b>' + lastRecording.events.length + '</b> 事件 · ' + (lastRecording.endTick || 0) + ' tick'
+      : '点击「开始录制」记录本局。';
+  }
+  if (expBtn) expBtn.disabled = !lastRecording;
+}
+
+/* 暴露 API */
+window.ReplayAPI = {
+  startRecord: () => startRecording(),
+  stopRecord: () => stopRecording(),
+  exportRecord: () => exportReplay(),
+  load: (data) => loadReplay(data),
+  exit: () => exitReplay(),
+  isRecording: () => !!recorder,
+  isReplaying: () => replayMode,
+  setView: (f) => setReplayView(f),
+  play:  () => { if (replayMode) { replayPlaying = true;  updateReplayBar(); } },
+  pause: () => { if (replayMode) { replayPlaying = false; updateReplayBar(); } },
+  step:  () => { if (replayMode) { replayPlaying = false; replayAdvanceOneTick(); updateReplayBar(); markDirty(); } },
+  seek:  (t) => replaySeekTo(t),
+};
+
+/* =========================================================
+   主循环
+   ========================================================= */
+const FRAME_MS_ACTIVE = 1000 / 30;
+const FRAME_MS_IDLE   = 1000 / 8;
+let lastFrameTime = 0;
+let lastStateSig = '';
+
+function loop(ts) {
+  requestAnimationFrame(loop);
+
+  const active = replayMode
+    ? (replayPlaying && !paused)
+    : (gameStarted && !paused && !gameOver && !isTraining);
+  const moving = units.length > 0;
+
+  const camSig = cam.px.toFixed(2) + ',' + cam.py.toFixed(2) + ',' + cam.zoom.toFixed(2);
+  const sig = camSig + '|' + hoverCell + '|' + selected + '|' + (placing || '') + '|' +
+              (moveMode ? 1 : 0) + '|' + (rerouteMode ? 1 : 0) + '|' +
+              (selectedUnit ? selectedUnit.path.length + '_' + selectedUnit.seg : '-') + '|' +
+              units.length + '|' + (mapDirty ? 1 : 0) + '|' + (replayMode ? 'R' + tickCount : '');
+  const sigChanged = sig !== lastStateSig;
+
+  const interval = sigChanged ? 0 : (active || moving) ? FRAME_MS_ACTIVE : FRAME_MS_IDLE;
+  if (ts - lastFrameTime < interval) return;
+
+  const dt = Math.min(0.1, (ts - lastFrameTime) / 1000);
+  lastFrameTime = ts;
+  lastStateSig = sig;
+
+  if (active) {
+    tickAcc += dt * 1000;
+    let guard = 0;
+    while (tickAcc >= TICK_MS && guard++ < 5) {
+      tickAcc -= TICK_MS;
+      if (replayMode) {
+        if (!replayAdvanceOneTick()) {
+          replayPlaying = false;
+          updateReplayBar();
+          break;
+        }
+      } else {
+        doTick(false);
+      }
+    }
+    updateUnits(dt);
+    if (replayMode && replayPlaying) updateReplayBar();
+  }
+
+  if (!mapDirty && !moving && !sigChanged && !active) return;
+
+  if (mapDirty) { refreshMapPixels(); mapDirty = false; }
+  render();
+}
+
+function checkGameOver() {
+  if (gameOver || replayMode) return;
+  const alive = [false,false,false,false,false];
+  for (let i = 0; i < N; i++) if (owner[i] !== 0) alive[owner[i]] = true;
+  const list = [];
+  for (let f = 1; f <= 4; f++) if (alive[f]) list.push(f);
+  if (list.length <= 1) {
+    gameOver = true;
+    if (recorder) {
+      stopRecording();
+      log('📺 录制已自动保存，可点击「导出」下载回放', 'info');
+    }
+    if (spectatorMode) {
+      document.getElementById('ov-title').textContent = '🏆 战局结束';
+      document.getElementById('ov-sub').textContent = list.length === 1
+        ? `${MAP_NAME[mapPreset]} · ${DIFF_NAME[aiDifficulty]} · ${tickCount} tick · ${COLOR_NAMES[list[0]]} 统一世界`
+        : `${MAP_NAME[mapPreset]} · ${DIFF_NAME[aiDifficulty]} · ${tickCount} tick · 战局终止`;
+    } else {
+      const win = (list.length === 1 && list[0] === playerFaction);
+      document.getElementById('ov-title').textContent = win ? '🌍 世界征服！' : '💀 你被消灭了';
+      document.getElementById('ov-sub').textContent = win
+        ? `${MAP_NAME[mapPreset]} · ${DIFF_NAME[aiDifficulty]} · ${tickCount} tick · 你（${COLOR_NAMES[playerFaction]}）统一世界`
+        : `${MAP_NAME[mapPreset]} · ${DIFF_NAME[aiDifficulty]} · 你（${COLOR_NAMES[playerFaction]}）领地全失`;
+    }
+    document.getElementById('overlay').style.display = 'flex';
+    if (aiLearningEnabled) evolveAfterGame(list[0]);
+  }
+}
+
+/* =========================================================
+   缓冲区
+   ========================================================= */
+function allocBuffers(w, h) {
+  W = w; H = h; N = w * h;
+  owner = new Int8Array(N);
+  troops = new Int32Array(N);
+  terrain = new Uint8Array(N);
+  bIdAt = new Int32Array(N).fill(-1);
+  bfsPrev = new Int32Array(N);
+  bfsSeen = new Int32Array(N);
+  bfsQueue = new Int32Array(N);
+  off.width = w; off.height = h;
+  imgData = offCtx.createImageData(w, h);
+  pixData = imgData.data;
+}
+
+function resetGame(presetKey) {
+  const preset = MAP_PRESETS[presetKey];
+  mapPreset = presetKey;
+  allocBuffers(preset.w, preset.h);
+  buildings = []; bMap.clear(); nextBId = 0;
+  money = [0, 2000, 2000, 2000, 2000];
+  units = [];
+  tickCount = 0; tickAcc = 0;
+  aiTimers = [0,0,0,0,0];
+  selected = null; selectedUnit = null; rerouteMode = false;
+  hoverCell = -1; placing = null; moveMode = false;
+  dispatchAmount = null;
+  gameOver = false; paused = false;
+  resourceCells = [];
+  initMap(preset);
+  fitCanvas(); fitView();
+  markDirty(); refreshMapPixels();
+}
+
+/* =========================================================
+   AI 插件加载
+   ========================================================= */
+function loadAIPluginFromCode(code) {
+  const prev = window.AI_PLUGIN;
+  window.AI_PLUGIN = null;
+  try {
+    const fn = new Function('window', 'globalThis', 'console', code);
+    fn(window, window, console);
+    if (!window.AI_PLUGIN || typeof window.AI_PLUGIN.think !== 'function') {
+      window.AI_PLUGIN = prev;
+      throw new Error('代码执行完毕，但 window.AI_PLUGIN.think 未定义');
+    }
+    return window.AI_PLUGIN;
+  } catch (e) {
+    window.AI_PLUGIN = prev;
+    throw e;
+  }
+}
+
+/* =========================================================
+   AI 提示词
+   ========================================================= */
+const AI_PROMPT_TEXT = `# 任务：为《征服世界》编写一个 AI 插件
+
+## 游戏规则概要
+
+《征服世界》是一个方格策略游戏，每 5 秒一个 tick。
+
+**地图**：W×H 方格。每个格子有：
+- 归属 owner[i]：0=中立，1~4=四个势力
+- 兵力 troops[i]：整数
+- 地形 terrain[i]：0=普通，1=初级资源，2=中级资源，3=高级资源，4=大本营
+
+**资源**：每 tick 每个己方格产出金钱（初级 6、中级 12、高级 30、大本营 15）；拥有领地额外 +100/tick。
+
+**过境占地**：部队经过一格无建筑、非大本营、无驻军的中立/敌方格子时，会自动把它染成己方领土（代价是每过一格扣 50 兵）。
+
+**容量**：普通格 150，大本营 1000，兵营 250×等级，城墙 300×等级，前哨站 2000。
+
+**建筑**（只能建在己方空地，大本营格不能建）：
+- 兵营 barracks（2×2）：每 tick 产 100×等级 兵，可购买兵力
+- 城墙 wall（1×1）：提供 +100×等级 防护
+- 地雷 mine（1×1）：敌方踩中造成 200×等级 伤害
+- 前哨站 outpost（1×1）：每级 +1000 防护，陷落时被摧毁
+
+**招募**：只能向大本营和兵营购买兵力。价格 30 金 / 100 兵。
+
+**派兵**：从己方格派兵到目标格。路径每经过一格非己方格消耗 50 兵。到达后与守军交战（守军兵力 + 城墙/前哨站防护）。若进攻兵力 > 守军总兵力，则占领该格。
+
+**胜利**：消灭其他所有势力。
+
+## 你的任务
+
+编写一个 AI 插件。每次 tick，引擎会调用你的 think(ctx) 一次，你返回一组动作。
+
+## 接口
+
+\`\`\`js
+window.AI_PLUGIN = {
+  name: '你的AI名字',
+  version: '1.0',
+  think(ctx) {
+    const actions = [];
+    return actions;
+  }
+};
+\`\`\`
+
+### ctx 结构
+
+\`\`\`js
+ctx = {
+  faction: 2,
+  difficulty: 'normal',
+  config: {
+    aggression, buffer, keepBackRatio, moneyUse,
+    maxAttacks, maxBarracks, thinkEvery,
+    buildDefense, preferPlayer
+  },
+  w: 50, h: 50, n: 2500,
+  owner: Int8Array,
+  troops: Int32Array,
+  terrain: Uint8Array,
+  money: [0, m1, m2, m3, m4],
+  buildings: [{ id, type, owner, level, x, y, cells:[..] }],
+  resourceCells: Int32Array,
+  helpers: {
+    idxOf(x, y), xOf(i), yOf(i), manhattan(a, b),
+    capacity(i), buildingAt(i), canPlace(type, x, y), canRecruitAt(i),
+  },
+}
+\`\`\`
+
+### 动作格式（返回数组）
+
+\`\`\`js
+{ type: 'recruit', amount: 500 }
+{ type: 'recruitCell', cell: 123, amount: 100 }
+{ type: 'build', building: 'barracks', x: 10, y: 20 }
+{ type: 'upgrade', id: 5 }
+{ type: 'dispatch', from: 123, to: 456, amount: 300 }
+\`\`\`
+
+### 约束
+
+- think 必须是纯函数：不要修改 ctx 里的数组或对象。
+- 每次最多返回 30 个动作。
+- 非法动作会被引擎忽略。
+- 每次 think 应在 30ms 内返回。
+
+## 战术建议
+
+1. **招募优先**：每 tick 先把一部分钱换成兵
+2. **扩张**：优先占资源点
+3. **建筑**：早期建兵营，中期建防御
+4. **进攻**：从兵力最多的己方格派兵，优先打敌方兵营、大本营
+5. **守恒**：源格留 20~50% 防守
+6. **多路**：兵力充足时并发 2-3 波
+
+## 输出要求
+
+只输出一个完整的 JS 代码块，以 \`window.AI_PLUGIN = { ... };\` 结尾，think 返回动作数组。`;
+
+/* =========================================================
+   开局设置
+   ========================================================= */
+let pendingSize = 'medium';
+let pendingDiff = 'normal';
+let pendingLearn = 'on';
+let pendingColor = 1;
+let pendingMode  = 'play';
+
+function initSetup() {
+  const modeCards = document.querySelectorAll('#mode-cards .card');
+  modeCards.forEach(card => {
+    card.onclick = () => {
+      modeCards.forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      pendingMode = card.dataset.mode;
+      const title = document.getElementById('color-section-title');
+      if (title) title.textContent = pendingMode === 'spectate' ? '🎨 焦点颜色' : '🎨 你的颜色';
+    };
+  });
+
+  const sizeCards = document.querySelectorAll('#size-cards .card');
+  sizeCards.forEach(card => {
+    card.onclick = () => {
+      sizeCards.forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      pendingSize = card.dataset.size;
+    };
+  });
+  const colorCards = document.querySelectorAll('#color-cards .card');
+  colorCards.forEach(card => {
+    card.onclick = () => {
+      colorCards.forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      pendingColor = parseInt(card.dataset.color, 10);
+    };
+  });
+  const diffCards = document.querySelectorAll('#diff-cards .card');
+  diffCards.forEach(card => {
+    card.onclick = () => {
+      diffCards.forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      pendingDiff = card.dataset.diff;
+    };
+  });
+  const learnCards = document.querySelectorAll('[data-learn]');
+  learnCards.forEach(card => {
+    card.onclick = () => {
+      learnCards.forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      pendingLearn = card.dataset.learn;
+    };
+  });
+
+  document.getElementById('btn-start-game').onclick = () => {
+    aiDifficulty = pendingDiff;
+    aiLearningEnabled = pendingLearn === 'on';
+    playerFaction = pendingColor;
+    spectatorMode = (pendingMode === 'spectate');
+    aiMemory = loadAIMemory();
+    for (const f of aiFactionList()) getAIFaction(f);
+    recorder = null; lastRecording = null;   // 新局清空旧录制
+    resetGame(pendingSize);
+    document.getElementById('setup-overlay').style.display = 'none';
+    gameStarted = true;
+    updateBadges(); updateSidebar(); updateInfoPanel(); updateAIPanel(); updateReplayPanel();
+    log(`🗺️ 地图：${MAP_NAME[mapPreset]}`, 'info');
+    log(spectatorMode ? `🍿 观战模式 · 焦点：${COLOR_NAMES[playerFaction]}` : `🎨 你的颜色：${COLOR_NAMES[playerFaction]}`, 'info');
+    log(`🤖 AI 难度：${DIFF_NAME[aiDifficulty]}`, 'info');
+    log(aiLearningEnabled ? `🧠 AI 学习已开启（进化代数 ${aiMemory.evolution}）` : '🧠 AI 学习已关闭', aiLearningEnabled ? 'good' : 'warn');
+    log(spectatorMode ? '🍿 观战开始！' : '🌍 战争开始！', 'good');
+    log('💡 提示：点击自己行进的部队可以改道', 'info');
+  };
+}
+
+/* =========================================================
+   启动
+   ========================================================= */
+function boot() {
+  allocBuffers(50, 50);
+  fitCanvas(); fitView();
+  buildShop();
+  updateSidebar(); updateInfoPanel(); refreshMapPixels();
+  updateBadges();
+  initSetup();
+
+  if (window.AI_PLUGIN && typeof window.AI_PLUGIN.think === 'function') {
+    currentAIPluginName = window.AI_PLUGIN.name || '外部 AI (ai.js)';
+  }
+
+  document.getElementById('btn-export').onclick = exportSave;
+  document.getElementById('btn-import').onclick = () => document.getElementById('file-import').click();
+  document.getElementById('file-import').onchange = (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const started = gameStarted && (tickCount > 0 || buildings.length > 0);
+    if (started && !confirm('导入存档将覆盖当前进度，是否继续？')) { e.target.value = ''; return; }
+    importSaveFromFile(f);
+    e.target.value = '';
+  };
+
+  document.getElementById('btn-load-ai').onclick = () => document.getElementById('file-ai').click();
+  document.getElementById('file-ai').onchange = (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    const reader = new FileReader();
+    reader.onload = ev => {
+      try {
+        const plugin = loadAIPluginFromCode(ev.target.result);
+        currentAIPluginName = plugin.name || '外部 AI';
+        updateBadges();
+        log(`🤖 已加载外部 AI：${currentAIPluginName}`, 'good');
+      } catch (err) {
+        alert('AI 加载失败：\n' + err.message);
+        log(`❌ AI 加载失败：${err.message}`, 'warn');
+      }
+    };
+    reader.readAsText(f, 'utf-8');
+    e.target.value = '';
+  };
+  document.getElementById('btn-reset-ai').onclick = () => {
+    window.AI_PLUGIN = null;
+    currentAIPluginName = '内置 AI v2';
+    updateBadges();
+    log(`♻️ 已恢复内置 AI`, 'info');
+  };
+
+  document.getElementById('btn-train').onclick = () => quickTrain(20);
+  document.getElementById('btn-reset-mem').onclick = () => {
+    if (!confirm('将清空所有 AI 学习记忆（含进化代数、胜率、参数），是否继续？')) return;
+    aiMemory = newMemory();
+    saveAIMemory();
+    updateAIPanel();
+    log('♻️ AI 记忆已重置', 'info');
+  };
+
+  const modal = document.getElementById('ai-prompt-modal');
+  document.getElementById('btn-show-prompt').onclick = () => {
+    document.getElementById('ai-prompt-text').value = AI_PROMPT_TEXT;
+    modal.style.display = 'flex';
+  };
+  document.getElementById('btn-close-prompt').onclick = () => { modal.style.display = 'none'; };
+  modal.addEventListener('click', e => { if (e.target === modal) modal.style.display = 'none'; });
+  document.getElementById('btn-copy-prompt').onclick = async () => {
+    const txt = document.getElementById('ai-prompt-text');
+    const btn = document.getElementById('btn-copy-prompt');
+    try { await navigator.clipboard.writeText(txt.value); }
+    catch (e) { txt.select(); document.execCommand('copy'); }
+    btn.textContent = '✅ 已复制';
+    setTimeout(() => { btn.textContent = '📋 复制到剪贴板'; }, 1500);
+  };
+
+  /* ★ 回放 UI */
+  buildReplayViews();
+  updateReplayPanel();
+  const btnRec = document.getElementById('btn-rec');
+  if (btnRec) btnRec.onclick = () => {
+    if (!gameStarted) { alert('先开始一局游戏'); return; }
+    if (recorder) stopRecording(); else startRecording();
+  };
+  const btnExp = document.getElementById('btn-replay-export');
+  if (btnExp) btnExp.onclick = exportReplay;
+  const btnLoad = document.getElementById('btn-replay-load');
+  const fileReplay = document.getElementById('file-replay');
+  if (btnLoad && fileReplay) {
+    btnLoad.onclick = () => fileReplay.click();
+    fileReplay.onchange = (e) => {
+      const f = e.target.files && e.target.files[0];
+      if (!f) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        try {
+          const data = JSON.parse(ev.target.result);
+          if (replayMode) exitReplay();
+          loadReplay(data);
+        } catch (err) { alert('回放导入失败：\n' + err.message); }
+      };
+      reader.readAsText(f, 'utf-8');
+      e.target.value = '';
+    };
+  }
+  const rpPlay = document.getElementById('rpPlay');
+  if (rpPlay) rpPlay.onclick = () => {
+    if (!replayMode) return;
+    replayPlaying = !replayPlaying;
+    updateReplayBar();
+  };
+  const rpStep = document.getElementById('rpStep');
+  if (rpStep) rpStep.onclick = () => {
+    if (!replayMode) return;
+    replayPlaying = false;
+    replayAdvanceOneTick();
+    updateUnits(TICK_MS / 1000);
+    markDirty(); updateReplayBar();
+  };
+  const rpExit = document.getElementById('rpExit');
+  if (rpExit) rpExit.onclick = exitReplay;
+  const rpSeek = document.getElementById('rpSeek');
+  if (rpSeek) {
+    rpSeek.oninput = () => {
+      if (!replayMode) return;
+      replayPlaying = false;
+      const startTick = replayData.meta.startTick || 0;
+      replaySeekTo(startTick + parseInt(rpSeek.value, 10));
+    };
+  }
+
+  aiMemory = loadAIMemory();
+  for (const f of aiFactionList()) getAIFaction(f);
+  updateAIPanel();
+
+  requestAnimationFrame(loop);
+  setInterval(() => {
+    updateSidebar();
+    if (selectedUnit) updateInfoPanel();
+    else if (selected !== null && !sliderActive) updateInfoPanel();
+    if (gameStarted) updateAIPanel();
+    if (recorder) updateReplayPanel();
+  }, 800);
+}
+
+window.addEventListener('pointerup', () => { sliderActive = false; });
+document.getElementById('btn-pause').onclick = function() {
+  if (replayMode) {
+    replayPlaying = !replayPlaying;
+    this.textContent = replayPlaying ? '⏸ 暂停' : '▶ 继续';
+    this.classList.toggle('primary', !replayPlaying);
+    updateReplayBar();
+    return;
+  }
+  if (!gameStarted || isTraining) return;
+  paused = !paused;
+  this.textContent = paused ? '▶ 继续' : '⏸ 暂停';
+  this.classList.toggle('primary', !paused);
+};
+document.getElementById('btn-fit').onclick = () => { if (gameStarted || replayMode) fitView(); };
+
+let resizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    const oldW = cssW;
+    fitCanvas();
+    const r = cssW / oldW;
+    cam.zoom *= r; cam.px *= r; cam.py *= r;
+    cam.zoom = clamp(cam.zoom, minZoom, maxZoom);
+    baseZoom *= r; minZoom *= r;
+    updateZoomBadge();
+  }, 120);
+});
+document.addEventListener('gesturestart', e => e.preventDefault());
+
+boot();
+</script>
+
+<script src="./music-ext.js" onerror="console.info('[MusicExt] 未找到 ./music-ext.js，音乐扩展未加载')"></script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+# 游戏运行时生成
+ai-memory.json
+replay_*.json
+*.log
+
+# 音乐（版权 + 体积）
+music/
+Music/
+*.mp3
+*.m4a
+*.aac
+*.wav
+*.ogg
+*.oga
+*.opus
+*.flac
+*.wma
+*.ape
+
+# 系统垃圾
+.DS_Store
+Thumbs.db
